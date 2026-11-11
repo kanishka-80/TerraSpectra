@@ -1,0 +1,43 @@
+# TerraSpectra ML Data & Preprocessing Configuration
+# Schema Version: 1.0.0
+# Lead: Harsh (ML Engineering Lead)
+
+dataset:
+  name: null                    # Candidate: EnMAP, PRISMA, EMIT, or AVIRIS (Pending Khushi confirmation)
+  sensor_type: "hyperspectral"   # Strictly hyperspectral (hundreds of narrow bands)
+  raw_data_dir: "data/raw"
+  processed_data_dir: "data/processed"
+  ground_truth_path: null       # Pending label audit (land cover vs stress vs disease)
+  crs_expected: null            # e.g., "EPSG:4326" or "EPSG:32643"
+
+spectral:
+  wavelength_unit: "nanometers"
+  min_wavelength_nm: 400.0
+  max_wavelength_nm: 2500.0
+  total_raw_bands: null         # Sensor dependent (e.g., 224 for AVIRIS, 242 for EnMAP)
+  selected_bands_count: null    # Bands retained after bad band removal
+  remove_water_absorption: true
+  water_absorption_bands_nm:
+    - [1350.0, 1420.0]
+    - [1800.0, 1950.0]
+  band_ordering: "ascending_wavelength"
+
+tensor_contract:
+  layout: "B_C_D_H_W"          # [Batch, Channels=1, Depth=Bands, Height=Patch, Width=Patch]
+  channels: 1                  # 1 scalar volumetric field for 3D-CNN
+  patch_size: 13               # Spatial patch window (H = W = 13)
+  batch_size: 32
+  dtype: "float32"
+
+normalization:
+  method: "min_max"            # Options: min_max, standard_score, reflectance_scale
+  scale_factor: 0.0001         # Conversion multiplier from DN to surface reflectance [0, 1]
+  clip_min: 0.0
+  clip_max: 1.0
+
+quality_and_masks:
+  nodata_value: -9999.0
+  filter_nan: true
+  filter_inf: true
+  mask_clouds: true
+  max_allowed_nodata_fraction: 0.0  # Training patches must contain 0% NoData

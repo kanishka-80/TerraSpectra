@@ -41,3 +41,41 @@
 - Create isolated virtual environment for ML (`ml/.venv`).
 - Complete PyTorch CUDA installation.
 - Finalize Day 2 task: Tensor input/output contract specification.
+
+## Day 2 — Hyperspectral Data Understanding & ML Input Specification
+**Date:** November 12, 2026  
+**Engineer:** Harsh (ML Engineering Lead)  
+**Branch:** `Harsh`
+
+### 1. Objectives
+- Formalize hyperspectral cube structural representation and wavelength registration.
+- Define mathematical rationale for band ordering and 3D convolution spatial-spectral kernel mechanics.
+- Finalize the proposed 5D 3D-CNN input tensor contract `[B, C, D, H, W]`.
+- Define robust NoData, NaN, Inf, and cloud masking strategies.
+- Document backend compatibility requirements for Kanishka's raster inference workers.
+- Author `docs/ml/data-model-contract.md` and `ml/configs/data.yaml`.
+
+### 2. Hyperspectral Data & Architectural Findings
+- **Data Cube Geometry:** Explored difference between 3-band RGB, 10–13-band multispectral, and 200+ band hyperspectral cubes. Every spatial pixel is a continuous reflectance curve $\rho(\lambda)$.
+- **Spectral Locality:** 3D-CNN kernels convolve simultaneously across $(D, H, W)$. Unordered or arbitrarily permuted bands break the physical continuity of the spectral gradient, destroying feature representation.
+- **Tensor Layout Decision:** Standardized on `[B, 1, D, H, W]` in `float32`. Setting `C = 1` treats the contiguous spectrum as a 3D volumetric field, fulfilling PyTorch's `nn.Conv3d` input signature.
+
+### 3. Decisions & Coordination Handshakes
+- **Khushi (ML & Data Engineering):**
+  - Handshake: Preprocessing must deliver normalized `[B, 1, D, H, W]` patches with ascending wavelength sorting and water absorption bands purged.
+  - Primary scene selection and label audit remain pending confirmation from Khushi.
+- **Kanishka (Backend):**
+  - Inference worker must pass tiled scenes with affine transforms intact and respect the 2-pixel spatial overlap to eliminate boundary stitching artifacts.
+
+### 4. Files Created / Updated
+- `docs/ml/data-model-contract.md`: Comprehensive technical specification contract.
+- `ml/configs/data.yaml`: Parameterized data configuration with explicit placeholders for unconfirmed fields.
+- `docs/ml/development-log.md`: Appended Day 2 milestone records.
+
+### 5. Verification & Syntax Validation
+- Validated YAML parsing for `ml/configs/data.yaml`.
+- Verified file paths against the repository structure.
+
+### 6. Pending Confirmation (Phase 1 Decision Gates)
+- Confirmation of primary dataset sensor (EnMAP vs PRISMA vs AVIRIS) from Khushi.
+- Finalization of verified label availability (land-cover vs crop stress vs disease).
