@@ -32,6 +32,27 @@ class TestDatasetAudit(unittest.TestCase):
         with self.assertRaises(ValueError):
             audit_dataset("nonexistent_dataset_folder")
 
+    def test_empty_directory(self):
+        with tempfile.TemporaryDirectory() as temp:
+            result = audit_dataset(temp)
+            self.assertEqual(result["total_files"], 0)
+            self.assertEqual(result["csv_reports"], [])
+
+    def test_nested_file_inventory(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            nested = folder / "agriculture" / "samples"
+            nested.mkdir(parents=True)
+            (nested / "metadata.txt").write_text(
+                "Hyperspectral dataset metadata",
+                encoding="utf-8"
+            )
+
+            result = audit_dataset(folder)
+
+            self.assertEqual(result["total_files"], 1)
+            self.assertEqual(result["files"][0]["extension"], ".txt")
+
 
 if __name__ == "__main__":
     unittest.main()
