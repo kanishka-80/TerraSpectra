@@ -1,0 +1,24 @@
+# TerraSpectra ML Class Mapping Configuration
+# Schema Version: 1.0.0
+# Lead: Harsh (ML Engineering Lead)
+
+task:
+  type: "multiclass_classification"   # Mutually exclusive classes via Softmax
+  objective: "crop_stress_detection"  # Single-date spectral-spatial state detection
+  confirmed: false                    # PROVISIONAL: Pending dataset confirmation
+  dataset_reference: null             # Pending dataset selection
+
+classes:
+  - id: 0
+    name: "healthy"
+    description: "Vegetation exhibiting normal spectral reflectance without early stress indicators."
+    is_alert_class: false
+  - id: 1
+    name: "stressed"
+    description: "Vegetation exhibiting subtle red-edge or water-absorption anomalies indicative of physiological stress."
+    is_alert_class: true
+
+nodata_background:
+  id: -1
+  name: "unclassified_nodata"
+  description: "Masked background, cloud-contaminated, or NoData pixels bypassed during inference."

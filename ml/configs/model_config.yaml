@@ -1,0 +1,39 @@
+# TerraSpectra ML Model Architecture & Output Configuration
+# Schema Version: 1.0.0
+# Lead: Harsh (ML Engineering Lead)
+
+model:
+  name: "terraspectra_hybrid_3dcnn_vit"
+  version: "0.1.0-dev"
+  architecture_type: "3d_cnn_vit_hybrid"
+  input_contract_ref: "docs/ml/data-model-contract.md"
+  class_mapping_ref: "ml/configs/classes.yaml"
+
+task:
+  prediction_task: "crop_stress_detection"
+  num_classes: null                   # Derived dynamically from classes.yaml at runtime (provisional: 2)
+  supports_forecasting: false         # Single-date imagery cannot perform multi-week forecasting
+
+backbone_placeholders:
+  cnn3d:
+    in_channels: 1                    # Matches [B, C=1, D, H, W] from Day 2 contract
+    feature_dim: null                 # To be finalized in Week 2 architecture design
+  vit:
+    embed_dim: null                   # Transformer hidden dimension (pending Week 2 design)
+    num_heads: null
+    num_layers: null
+    patch_token_strategy: "spectral_spatial_tokens"
+
+classification_head:
+  type: "linear"
+  in_features: null                   # Matches pooled ViT representation dimension
+  out_features: null                  # Matches num_classes
+  dropout_rate: 0.2                   # Supports MC-Dropout uncertainty estimation in Phase 3
+  output_activation: "softmax"        # Applied post-logits for mutually exclusive probabilities
+
+output_contract:
+  emit_logits: true
+  emit_probabilities: true
+  emit_uncertainty: false             # Planned for Phase 3 (MC-Dropout / ensemble variance)
+  uncertainty_method: "mc_dropout"
+  dtype: "float32"

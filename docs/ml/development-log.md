@@ -79,3 +79,38 @@
 ### 6. Pending Confirmation (Phase 1 Decision Gates)
 - Confirmation of primary dataset sensor (EnMAP vs PRISMA vs AVIRIS) from Khushi.
 - Finalization of verified label availability (land-cover vs crop stress vs disease).
+
+## Day 3 — ML Prediction Task & Model Output Specification
+**Date:** November 12, 2026  
+**Engineer:** Harsh (ML Engineering Lead)  
+**Branch:** `Harsh`
+
+### 1. Objectives
+- Define the initial ML prediction task grounded in verified dataset and label availability.
+- Distinguish crop stress detection from specific disease identification and multi-date forecasting.
+- Specify the 3D-CNN + ViT classification head, logits, softmax probabilities, and separate uncertainty representation.
+- Establish the 4-tier output contract (Model -> Patch -> Spatial Tile -> Backend API) for Kanishka's FastAPI integration.
+- Create `ml/configs/classes.yaml`, `ml/configs/model_config.yaml`, and `docs/ml/model-specification.md`.
+
+### 2. Key Technical Decisions
+- **Provisional Task Scope:** Scoped initial model to single-date **crop stress detection** (`healthy` vs. `stressed` provisional binary mapping in `classes.yaml`) rather than unverified pathogen identification or multi-week forecasting.
+- **Dynamic Class Binding:** Number of output neurons `K` is driven dynamically from `classes.yaml` rather than hardcoded in model configs.
+- **Decoupled Output Tiers:** Separated PyTorch tensor outputs (`[B, K]` logits) from patch JSON structures, georeferenced 2D spatial arrays (`int16` class map + `float32` confidence map), and backend persistence metadata (`prediction_id`, `job_id`, `scene_id`, COG URIs).
+- **Uncertainty Isolation:** Separated predictive uncertainty (MC-Dropout planned for Phase 3) from softmax class probabilities.
+
+### 3. Coordination & Integration Findings
+- **Khushi (Data & ML):** `classes.yaml` explicitly flags `confirmed: false` until the dataset and ground-truth label audit are finalized.
+- **Kanishka (Backend):** Documented exact division of responsibilities between `terraspectra_ml.inference` (georeferenced arrays + model metadata) and FastAPI workers (async job tracking, COG packaging, and API serialization).
+
+### 4. Files Created / Updated
+- `ml/configs/classes.yaml`: Provisional class mapping and NoData background code (`-1`).
+- `ml/configs/model_config.yaml`: Architectural and classification head specification with explicit `null` placeholders for Week 2 dimensions.
+- `docs/ml/model-specification.md`: Complete Day 3 prediction task and output contract specification.
+- `docs/ml/development-log.md`: Appended Day 3 milestone log.
+
+### 5. Validation & Checks
+- Verified YAML syntax and cross-file schema consistency across `data.yaml`, `classes.yaml`, and `model_config.yaml`.
+
+### 6. Pending Questions & Open Decisions
+- Confirmation of final dataset and ground-truth label schema to flip `confirmed: true` in `classes.yaml`.
+- Finalization of exact `feature_dim` and ViT `embed_dim` in Week 2 based on selected band count `D` and 6 GB VRAM budget.
