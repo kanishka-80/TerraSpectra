@@ -114,3 +114,26 @@
 ### 6. Pending Questions & Open Decisions
 - Confirmation of final dataset and ground-truth label schema to flip `confirmed: true` in `classes.yaml`.
 - Finalization of exact `feature_dim` and ViT `embed_dim` in Week 2 based on selected band count `D` and 6 GB VRAM budget.
+
+## Day 4 — 3D-CNN Architecture Design & Input Contract Implementation
+**Date:** November 13, 2026  
+**Engineer:** Harsh (ML Engineering Lead)  
+**Branch:** `Harsh`
+
+### 1. Objectives
+- Formulate the 3-stage 3D-CNN architecture (`[8, 16, 32]` channels) with spectral striding and spatial preservation.
+- Document symbolic tensor transformations (`[B, 1, D, H, W]` -> `[B, F]`) and future ViT tokenization interface.
+- Implement `ml/src/terraspectra_ml/models/input_contract.py` and `ml/src/terraspectra_ml/models/__init__.py`.
+- Implement and execute unit tests in `ml/tests/test_input_contract.py`.
+
+### 2. Implementation & Test Verification
+- Implemented `InputContractSpec` and `validate_model_input` supporting both NumPy arrays and PyTorch tensors.
+- Enforced 5D layout `[B, C=1, D, H, W]`, minimum spectral depth (`D >= 4`, rejecting 3-band RGB `.jpg` inputs), odd spatial patch dimensions, `float32` dtype, and `NaN`/`Inf` rejection.
+- Executed unit test suite (`ml/tests/test_input_contract.py`): 11/11 unit tests passed.
+
+### 3. Files Created / Updated
+- `ml/src/terraspectra_ml/models/input_contract.py`
+- `ml/src/terraspectra_ml/models/__init__.py`
+- `ml/tests/test_input_contract.py`
+- `docs/ml/3dcnn-architecture.md`
+- `docs/ml/development-log.md`
