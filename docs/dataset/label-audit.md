@@ -1,19 +1,26 @@
 # Label Audit
 
-## Current status
-Ground-truth labels must be verified before supervised training.
+## Automated checks
+The audit script checks:
+- Total CSV records
+- Missing labels
+- Unique class count
+- Class frequency
+- Duplicate sample IDs, when an ID column is provided
 
-## Required checks
+## Run
+
+```bash
+./.venv/Scripts/python.exe ml/scripts/audit_labels.py path/to/labels.csv --label-column disease --id-column sample_id
+```
+
+## Manual verification still required
 - Original label source and license
 - Label definition and class mapping
 - Sample-to-label alignment
-- Missing and invalid labels
+- Geographic and temporal validity
 - Class distribution and imbalance
-- Spatial overlap and potential leakage
-- Independent validation and test regions
+- Spatial leakage between data splits
 
-## Restrictions
-Do not infer disease labels from visual appearance without validated
-ground truth. Do not create fabricated labels and present them as real.
-
-Baseline model training remains disabled until this audit is complete.
+A structurally valid CSV is not proof of correct ground truth.
+The script intentionally does not mark labels as verified.

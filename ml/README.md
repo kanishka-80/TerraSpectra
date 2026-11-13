@@ -53,3 +53,34 @@ PYTHONPATH=ml/src python -m unittest discover -s ml/tests -v
 - Do not commit raw satellite scenes, credentials or large model artifacts.
 
 See `docs/dataset/` for inspection, preprocessing and label-audit records.
+
+## Additional Week 1 analysis tools
+
+### Spectral EDA
+
+```bash
+./.venv/Scripts/python.exe ml/scripts/spectral_eda.py path/to/scene.tif
+```
+
+Creates per-band summary JSON and CSV using windowed reads.
+
+Notebook: `ml/notebooks/02_spectral_eda.ipynb`
+
+### Label audit
+
+```bash
+./.venv/Scripts/python.exe ml/scripts/audit_labels.py path/to/labels.csv --label-column disease --id-column sample_id
+```
+
+This checks CSV completeness and class distribution. It does not certify label provenance.
+
+### Raster reader tests
+
+```bash
+PYTHONPATH=ml/src ./.venv/Scripts/python.exe -m unittest ml.tests.test_raster_reader -v
+```
+
+### Handoff documents
+
+- `docs/dataset/tensor-contract.md`
+- `docs/dataset/gis-handoff.md`
