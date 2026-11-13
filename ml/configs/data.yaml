@@ -1,0 +1,20 @@
+data:
+  expected_layout: bands_rows_columns
+  patch_size: 9
+  patch_stride: 1
+  batch_size: 16
+  num_workers: 0
+
+quality:
+  require_crs: true
+  require_transform: true
+  reject_empty_bands: true
+  report_constant_bands: true
+  report_nonfinite_pixels: true
+
+reproducibility:
+  random_seed: 42
+
+labels:
+  require_verified_source: true
+  allow_fabricated_labels: false

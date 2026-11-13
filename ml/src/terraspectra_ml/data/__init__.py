@@ -1,13 +1,11 @@
-"""
-TerraSpectra hyperspectral data engineering package.
+"""Hyperspectral data reading, validation and patch preparation."""
 
-Week 1 responsibilities:
-- Raster metadata inspection
-- Data quality validation
-- Spectral analysis
-- Preprocessing
-- Patch extraction
-- Dataset loading
-"""
+from .raster_reader import inspect_raster, read_raster, read_window
+from .quality_checks import validate_raster
 
-__all__ = []
+__all__ = [
+    "inspect_raster",
+    "read_raster",
+    "read_window",
+    "validate_raster",
+]
