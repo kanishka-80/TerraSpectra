@@ -1,0 +1,118 @@
+# TerraSpectra — Hybrid 3D-CNN + Vision Transformer & Experiment Configuration
+# Schema Version: 1.0.0
+# Author: Harsh (ML Engineering Lead)
+# Status: Foundation specification only (model training not yet started)
+
+# ==============================================================================
+# A. MODEL INFORMATION
+# ==============================================================================
+model:
+  name: "terraspectra_hybrid_3dcnn_vit"
+  version: "0.1.0-dev"
+  architecture_type: "3d_cnn_vit_hybrid"
+  components:
+    spatial_spectral_extractor: "3d_cnn"
+    global_context_encoder: "vision_transformer"
+  class_config_ref: "ml/configs/classes.yaml"
+  num_classes: null                   # Derived dynamically from classes.yaml (provisional: 2)
+
+# ==============================================================================
+# B. INPUT CONFIGURATION (Aligned with Day 2 Data-Model Contract)
+# ==============================================================================
+input:
+  expected_ndim: 5
+  axis_convention: "B_C_D_H_W"        # [Batch, Channels, Depth, Height, Width]
+  in_channels: 1                      # Volumetric scalar reflectance field
+  spectral_depth: null                # Symbolic D; sensor-dependent (pending dataset confirmation)
+  min_spectral_depth: 4               # Enforces true multi-band HSI over 3-channel RGB
+  spatial_height: 13                  # Odd patch window centered on target pixel
+  spatial_width: 13
+  dtype: "float32"
+  normalization_expected: "normalized_reflectance_0_1"
+  device: "auto"                      # Resolved explicitly at runtime ("cuda" if available else "cpu")
+
+# ==============================================================================
+# C. 3D-CNN FEATURE EXTRACTOR CONFIGURATION (Aligned with Day 4 Spec)
+# ==============================================================================
+cnn3d:
+  enabled: true
+  blocks:
+    - name: "block_1"
+      out_channels: 8
+      kernel_size: [7, 3, 3]          # [k_depth, k_height, k_width]
+      stride: [2, 1, 1]               # Stride along spectral axis; preserve spatial HxW
+      padding: [3, 1, 1]
+    - name: "block_2"
+      out_channels: 16
+      kernel_size: [5, 3, 3]
+      stride: [2, 1, 1]
+      padding: [2, 1, 1]
+    - name: "block_3"
+      out_channels: 32
+      kernel_size: [3, 3, 3]
+      stride: [1, 1, 1]
+      padding: [1, 0, 0]              # Reduces border padding artifacts (13x13 -> 11x11)
+  normalization: "BatchNorm3d"
+  activation: "GELU"
+  dropout_3d: 0.1
+  adaptive_pool_output: [4, 5, 5]     # [D_p, H_p, W_p] decouples downstream shape from sensor bands D
+
+# ==============================================================================
+# D. VISION TRANSFORMER (ViT) CONFIGURATION (Planned Week 2 Integration)
+# ==============================================================================
+vit:
+  enabled: true
+  tokenization_strategy: "spatial_spectral_tokens"
+  cnn_feature_input_dim: null         # Derived from cnn3d adaptive_pool_output
+  embed_dim: 128                      # Candidate embedding dimension (requires Week 2 validation)
+  num_heads: 4                        # Must divide embed_dim evenly
+  num_layers: 2                       # Compact depth suited for 6 GB VRAM budget
+  mlp_dim: 256                        # Feed-forward hidden dimension (2x embed_dim)
+  dropout: 0.1
+  positional_encoding: "learnable"
+
+# ==============================================================================
+# E. CLASSIFICATION HEAD CONFIGURATION (Aligned with Day 3 Spec)
+# ==============================================================================
+classification:
+  num_classes: null                   # Bound dynamically from ml/configs/classes.yaml
+  head_type: "linear"
+  in_features: 128                    # Matches ViT embed_dim
+  dropout: 0.2                        # Supports MC-Dropout uncertainty estimation in Phase 3
+  logits_convention: "raw_unnormalized_logits"
+  probability_activation: "softmax"   # Mutually exclusive class probabilities
+
+# ==============================================================================
+# F. INITIAL TRAINING HYPERPARAMETERS (Unvalidated — Requires Future Tuning)
+# ==============================================================================
+training:
+  tuned: false                        # Explicitly flagged: initial defaults, NOT experimentally tuned
+  batch_size: 32                      # Sized for 6 GB VRAM (RTX 3050)
+  learning_rate: 0.0003
+  optimizer: "AdamW"
+  weight_decay: 0.01
+  epochs: 30
+  loss_function: "CrossEntropyLoss"
+  scheduler: "CosineAnnealingLR"
+  random_seed: 42
+
+# ==============================================================================
+# G. REPRODUCIBLE EXPERIMENT CONFIGURATION (Task 2)
+# ==============================================================================
+experiment:
+  experiment_id: "exp_000_foundation_baseline"
+  reproducibility_verified: false     # Configuration structure ready; empirical run pending dataset
+  random_seed: 42
+  deterministic_cudnn: true
+  dataset_config_ref: "ml/configs/data.yaml"
+  model_config_ref: "ml/configs/hybrid_3dcnn_vit.yaml"
+  validation:
+    strategy: "spatial_block_split"   # Prevents spatial autocorrelation leakage (FR-ML05)
+    val_split_ratio: 0.2
+  artifacts:
+    checkpoint_dir: "ml/artifacts/checkpoints"
+    report_dir: "ml/artifacts/reports"
+    save_best_only: true
+  logging:
+    log_interval_steps: 10
+    log_dir: "ml/artifacts/logs"

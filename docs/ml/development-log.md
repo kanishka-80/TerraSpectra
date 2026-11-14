@@ -137,3 +137,36 @@
 - `ml/tests/test_input_contract.py`
 - `docs/ml/3dcnn-architecture.md`
 - `docs/ml/development-log.md`
+
+## Day 5 — Model Development & Testing Foundation
+**Date:** Sunday, 15 November 2026  
+**Engineer:** Harsh (ML Engineering Lead)  
+**Branch:** `Harsh`
+
+### 1. Objective
+- Establish the initial hybrid 3D-CNN + Vision Transformer (ViT) and reproducible experiment configuration structure (`ml/configs/hybrid_3dcnn_vit.yaml`).
+- Extend the 5D tensor input contract (`ml/src/terraspectra_ml/models/input_contract.py`) with explicit device resolution and device validation.
+- Build and execute automated tensor-shape, dtype, and device validation unit tests (`ml/tests/test_tensor_shapes.py`).
+
+### 2. Configuration & Validation Work Completed
+- **`ml/configs/hybrid_3dcnn_vit.yaml`:** Defined structured sections for Model Information, Input Configuration (`B_C_D_H_W`, `C=1`, `H=W=13`, `float32`), 3D-CNN Blocks (`[8, 16, 32]`), ViT Hybrid settings (`embed_dim=128`, `num_heads=4`, `num_layers=2`), Classification Head reference (`classes.yaml`), Initial Training Hyperparameters (`tuned: false`), and Experiment Reproducibility (`random_seed: 42`, `reproducibility_verified: false`).
+- **`ml/src/terraspectra_ml/models/input_contract.py` & `__init__.py`:** Preserved Day 4 dimensional, dtype (`float32`), and `NaN`/`Inf` checks; added `expected_device` validation and `resolve_target_device()` for explicit CPU/CUDA placement without silent fallbacks.
+
+### 3. Tests Executed & Actual Results
+- **YAML Validation Command:**
+  `python -c "import yaml; cfg = yaml.safe_load(open('ml/configs/hybrid_3dcnn_vit.yaml')); print('Hybrid YAML Valid! Model:', cfg['model']['name'], '| Axis:', cfg['input']['axis_convention'], '| Seed:', cfg['experiment']['random_seed'])"`
+  - **Result:** `Hybrid YAML Valid! Model: terraspectra_hybrid_3dcnn_vit | Axis: B_C_D_H_W | Seed: 42`
+- **Unit Test Suite Command:**
+  `python -m unittest discover -s ml/tests -v`
+  - **Result:** `Ran 19 tests in 0.320s` — `OK` (11 tests in `test_input_contract.py` + 8 tests in `test_tensor_shapes.py` passed).
+
+### 4. Files Created / Modified
+- **Created:** `ml/configs/hybrid_3dcnn_vit.yaml`
+- **Created:** `ml/tests/test_tensor_shapes.py`
+- **Modified:** `ml/src/terraspectra_ml/models/input_contract.py`
+- **Modified:** `ml/src/terraspectra_ml/models/__init__.py`
+- **Modified:** `docs/ml/development-log.md`
+
+### 5. Pending Issues & Next Steps
+- Awaiting genuine hyperspectral dataset cube (e.g., EnMAP, PRISMA, AVIRIS, or benchmark `.mat`/`.tif`) from Khushi to populate `spectral_depth` (`D`) and flip `confirmed: true` in `classes.yaml`.
+- Next step: Day 6 model foundation / inference contract review upon instruction.

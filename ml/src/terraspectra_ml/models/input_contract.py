@@ -2,7 +2,7 @@
 
 Enforces the Day 2 5D tensor contract: [Batch, Channels, Depth, Height, Width]
 ([B, C, D, H, W]) before passing data into neural network layers.
-Supports both NumPy arrays and PyTorch tensors.
+Supports both NumPy arrays and PyTorch tensors with explicit dtype and device checks.
 """
 
 from __future__ import annotations
@@ -38,6 +38,39 @@ class InputContractSpec:
     allowed_dtypes: Tuple[str, ...] = ("float32",)
     allow_nan: bool = False
     allow_inf: bool = False
+    expected_device: Optional[str] = None  # e.g., "cpu", "cuda", "cuda:0" (applies to torch.Tensor)
+
+
+def resolve_target_device(requested_device: str = "auto") -> str:
+    """Resolve explicit execution device string without silent fallbacks.
+
+    Args:
+        requested_device: One of "auto", "cpu", or "cuda" (or "cuda:<idx>").
+
+    Returns:
+        Resolved device identifier ("cpu" or "cuda...").
+
+    Raises:
+        InputContractError: If CUDA is explicitly requested when unavailable,
+            or if an invalid device string is provided.
+    """
+    normalized = requested_device.strip().lower()
+    cuda_available = bool(HAS_TORCH and torch.cuda.is_available())
+
+    if normalized == "auto":
+        return "cuda" if cuda_available else "cpu"
+    if normalized == "cpu":
+        return "cpu"
+    if normalized.startswith("cuda"):
+        if not cuda_available:
+            raise InputContractError(
+                f"Device '{requested_device}' was explicitly requested, but CUDA/PyTorch GPU is unavailable."
+            )
+        return normalized
+
+    raise InputContractError(
+        f"Unsupported device specification '{requested_device}'. Expected 'auto', 'cpu', or 'cuda'."
+    )
 
 
 def _is_torch_tensor(x: Any) -> bool:
@@ -68,12 +101,15 @@ def validate_model_input(
         Tuple of validated dimensions (B, C, D, H, W).
 
     Raises:
-        InputContractError: If any dimensional, dtype, or numerical check fails.
+        InputContractError: If any dimensional, dtype, device, or numerical check fails.
     """
     if spec is None:
         spec = InputContractSpec()
 
-    if not (_is_torch_tensor(x) or isinstance(x, np.ndarray)):
+    is_tensor = _is_torch_tensor(x)
+    is_ndarray = isinstance(x, np.ndarray)
+
+    if not (is_tensor or is_ndarray):
         raise InputContractError(
             f"Unsupported input type '{type(x).__name__}'. Expected numpy.ndarray or torch.Tensor."
         )
@@ -133,8 +169,22 @@ def validate_model_input(
             f"Unsupported data type '{dtype_name}'. Allowed dtypes: {spec.allowed_dtypes}."
         )
 
-    # 7. NaN and Inf numerical checks
-    if _is_torch_tensor(x):
+    # 7. Device check (explicit for PyTorch tensors; NumPy arrays are host-memory only)
+    if spec.expected_device is not None:
+        expected_dev = spec.expected_device.strip().lower()
+        if is_tensor:
+            actual_dev = str(x.device).lower()
+            if not (actual_dev == expected_dev or actual_dev.startswith(expected_dev + ":")):
+                raise InputContractError(
+                    f"Tensor device mismatch: expected '{spec.expected_device}', got '{x.device}'."
+                )
+        elif expected_dev != "cpu":
+            raise InputContractError(
+                f"NumPy arrays reside on host CPU memory and cannot satisfy expected_device='{spec.expected_device}'."
+            )
+
+    # 8. NaN and Inf numerical checks
+    if is_tensor:
         has_nan = bool(torch.isnan(x).any().item())
         has_inf = bool(torch.isinf(x).any().item())
     else:

@@ -7,11 +7,13 @@ Exports the validated input contract interfaces. Neural network modules
 from terraspectra_ml.models.input_contract import (
     InputContractError,
     InputContractSpec,
+    resolve_target_device,
     validate_model_input,
 )
 
 __all__ = [
     "InputContractError",
     "InputContractSpec",
+    "resolve_target_device",
     "validate_model_input",
 ]
