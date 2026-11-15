@@ -1,4 +1,4 @@
-"""Inspect a raster scene and save a JSON metadata report."""
+"""Inspect raster metadata and quality using windowed reads."""
 
 import argparse
 import json
@@ -8,9 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "ml" / "src"))
 
-from terraspectra_ml.data.raster_reader import inspect_raster
-from terraspectra_ml.data.raster_reader import read_raster
-from terraspectra_ml.data.quality_checks import validate_raster
+from terraspectra_ml.data.quality_checks import validate_raster_file
 
 
 def main():
@@ -20,16 +18,13 @@ def main():
         "--output",
         default="docs/dataset/scene-inspection.json",
     )
+    parser.add_argument("--window-size", type=int, default=512)
     args = parser.parse_args()
 
-    metadata = inspect_raster(args.scene)
-    data = read_raster(args.scene, masked=True)
-    quality = validate_raster(data, metadata)
-
-    report = {
-        "metadata": metadata,
-        "quality": quality,
-    }
+    report = validate_raster_file(
+        args.scene,
+        window_size=args.window_size,
+    )
 
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -37,6 +32,7 @@ def main():
 
     print(json.dumps(report, indent=2))
     print(f"\nReport saved to: {output}")
+    print(f"Raster quality valid: {report['valid']}")
 
 
 if __name__ == "__main__":
