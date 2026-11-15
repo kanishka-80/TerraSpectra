@@ -668,3 +668,119 @@
     width: 100%;
   }
 }
+
+/* =================================
+   TERRASPECTRA LIVE CAMERA
+================================= */
+
+.camera-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 25, 17, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 9999;
+  backdrop-filter: blur(5px);
+}
+
+.camera-modal {
+  background: #ffffff;
+  padding: 28px;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 620px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  animation: cameraAppear 0.25s ease;
+}
+
+.camera-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+  text-align: left;
+  margin-bottom: 22px;
+}
+
+.camera-heading h2 {
+  color: #183b2a;
+  font-size: 25px;
+  margin-bottom: 8px;
+}
+
+.camera-heading p:not(.eyebrow) {
+  color: #89988e;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.camera-heading .icon-button {
+  flex-shrink: 0;
+}
+
+.camera-preview {
+  display: block;
+  width: 100%;
+  min-height: 250px;
+  max-height: 420px;
+  object-fit: contain;
+  background: #17251b;
+  border-radius: 15px;
+  margin-bottom: 22px;
+}
+
+.camera-actions {
+  justify-content: center;
+  margin-bottom: 0;
+}
+
+.camera-actions button {
+  min-width: 150px;
+}
+
+.camera-modal .eyebrow {
+  margin-bottom: 8px;
+}
+
+@keyframes cameraAppear {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 600px) {
+  .camera-overlay {
+    padding: 12px;
+  }
+
+  .camera-modal {
+    padding: 18px;
+    border-radius: 16px;
+  }
+
+  .camera-heading h2 {
+    font-size: 21px;
+  }
+
+  .camera-preview {
+    min-height: 200px;
+    max-height: 350px;
+  }
+
+  .camera-actions {
+    flex-direction: column;
+  }
+
+  .camera-actions button {
+    width: 100%;
+  }
+}

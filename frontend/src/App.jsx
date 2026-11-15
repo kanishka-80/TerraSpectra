@@ -1,9 +1,9 @@
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   LayoutDashboard, ScanLine, Sprout, History, Settings,
   Bell, Search, Leaf, Upload, ImagePlus, ArrowRight,
-  Activity, Menu, X, ShieldCheck
+  Activity, Menu, X, ShieldCheck, Camera
 } from "lucide-react";
 import "./App.css";
 
@@ -20,7 +20,37 @@ function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+
+  // Start the live camera preview
+  useEffect(() => {
+    const startVideo = async () => {
+      if (cameraOpen && videoRef.current && streamRef.current) {
+        const video = videoRef.current;
+        video.srcObject = streamRef.current;
+
+        try {
+          await video.play();
+        } catch (error) {
+          console.error("Video playback error:", error);
+        }
+      }
+    };
+
+    startVideo();
+  }, [cameraOpen]);
+
+  // Stop camera when the component is removed
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+
+  // Handle uploaded image
   const handleImage = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -51,14 +81,123 @@ function App() {
     event.target.value = "";
   };
 
+  // Open laptop or mobile camera
+  const openCamera = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      alert(
+        "Camera is not supported. Please use localhost or a secure connection."
+      );
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: false,
+      });
+
+      streamRef.current = stream;
+      setCameraOpen(true);
+    } catch (error) {
+      console.error("Camera error:", error);
+
+      if (error.name === "NotAllowedError") {
+        alert(
+          "Camera permission denied. Please allow camera access in your browser settings."
+        );
+      } else if (error.name === "NotFoundError") {
+        alert("No camera was found on this device.");
+      } else if (error.name === "NotReadableError") {
+        alert(
+          "Your camera may already be in use by another application. Close it and try again."
+        );
+      } else {
+        alert(
+          "Unable to open camera. Please check your camera connection and permissions."
+        );
+      }
+    }
+  };
+
+  // Close camera and stop webcam
+  const closeCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
+    setCameraOpen(false);
+  };
+
+  // Capture photo from webcam
+  const capturePhoto = () => {
+    const video = videoRef.current;
+
+    if (!video || !video.videoWidth) {
+      alert("Camera is not ready. Please try again.");
+      return;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      alert("Unable to capture photo. Please try again.");
+      return;
+    }
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          alert("Unable to capture photo. Please try again.");
+          return;
+        }
+
+        const file = new File(
+          [blob],
+          `plant-photo-${Date.now()}.jpg`,
+          { type: "image/jpeg" }
+        );
+
+        if (file.size > 10 * 1024 * 1024) {
+          alert("Captured image is larger than 10 MB.");
+          return;
+        }
+
+        if (selectedImage) {
+          URL.revokeObjectURL(selectedImage);
+        }
+
+        const previewURL = URL.createObjectURL(file);
+
+        setSelectedImage(previewURL);
+        setSelectedFile(file);
+        setActivePage("Overview");
+        setMobileOpen(false);
+
+        closeCamera();
+      },
+      "image/jpeg",
+      0.9
+    );
+  };
+
+  // Remove selected image
   const removeImage = () => {
     if (selectedImage) {
       URL.revokeObjectURL(selectedImage);
     }
+
     setSelectedImage(null);
     setSelectedFile(null);
   };
 
+  // Overview page
   const renderOverview = () => (
     <>
       <div className="page-heading">
@@ -100,9 +239,9 @@ function App() {
             <div>
               <p className="eyebrow">CROP SCANNER</p>
               <h2>Image Ready for Analysis</h2>
-              <p>Your crop image has been uploaded successfully.</p>
+              <p>Your crop image is ready for analysis.</p>
             </div>
-            <span className="development-tag">Uploaded</span>
+            <span className="development-tag">Image Ready</span>
           </div>
 
           <div className="preview-container">
@@ -114,7 +253,7 @@ function App() {
           </div>
 
           <div className="file-information">
-            <FileImageIcon />
+            <Upload size={20} />
             <div>
               <strong>{selectedFile?.name}</strong>
               <span>
@@ -155,8 +294,7 @@ function App() {
 
           <p className="analysis-note">
             <ShieldCheck size={16} />
-            Your image is ready. Disease detection will be available
-            after model integration.
+            Disease detection will be available after model integration.
           </p>
         </section>
       ) : (
@@ -177,6 +315,7 @@ function App() {
     </>
   );
 
+  // Crop Scanner page
   const renderScanner = () => (
     <>
       <div className="page-heading">
@@ -184,7 +323,7 @@ function App() {
           <p className="eyebrow">AGRICULTURE INTELLIGENCE PLATFORM</p>
           <h1>Crop Scanner</h1>
           <p className="subtitle">
-            Upload a clear image of your crop for analysis.
+            Upload or capture a clear image of your crop for analysis.
           </p>
         </div>
 
@@ -217,6 +356,7 @@ function App() {
 
         <div className="upload-actions">
           <label className="primary-button">
+            <Upload size={18} />
             Browse Image
             <input
               type="file"
@@ -225,6 +365,14 @@ function App() {
               hidden
             />
           </label>
+
+          <button
+            className="secondary-button"
+            onClick={openCamera}
+          >
+            <Camera size={18} />
+            Take Photo
+          </button>
         </div>
 
         <span className="development-tag">
@@ -235,6 +383,7 @@ function App() {
     </>
   );
 
+  // Other pages
   const pageDetails = {
     "Disease Analysis": {
       icon: Sprout,
@@ -289,6 +438,55 @@ function App() {
 
   return (
     <div className="app-shell">
+
+      {/* Live Camera Window */}
+      {cameraOpen && (
+        <div className="camera-overlay">
+          <div className="camera-modal">
+            <div className="camera-heading">
+              <div>
+                <p className="eyebrow">TERRASPECTRA CAMERA</p>
+                <h2>Capture Plant Photo</h2>
+                <p>Position your plant clearly inside the camera.</p>
+              </div>
+
+              <button
+                className="icon-button"
+                onClick={closeCamera}
+                aria-label="Close camera"
+              >
+                <X />
+              </button>
+            </div>
+
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="camera-preview"
+            />
+
+            <div className="upload-actions camera-actions">
+              <button
+                className="primary-button"
+                onClick={capturePhoto}
+              >
+                <Camera size={18} />
+                Capture Photo
+              </button>
+
+              <button
+                className="secondary-button"
+                onClick={closeCamera}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {mobileOpen && (
         <button
           className="mobile-overlay"
@@ -378,10 +576,6 @@ function App() {
       </main>
     </div>
   );
-}
-
-function FileImageIcon() {
-  return <Upload size={20} />;
 }
 
 export default App;
