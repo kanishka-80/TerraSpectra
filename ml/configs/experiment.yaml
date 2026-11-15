@@ -1,0 +1,79 @@
+# TerraSpectra — Reproducible Experiment & Evaluation Configuration
+# Schema Version: 1.0.0
+# Author: Harsh (ML Engineering Lead)
+# Status: Configuration foundation only (no experimental runs executed yet)
+
+experiment:
+  name: "terraspectra_week1_evaluation_baseline"
+  version: "0.1.0-dev"
+  status: "planned"
+  random_seed: 42
+  deterministic: true
+
+references:
+  data_config: "ml/configs/data.yaml"
+  class_config: "ml/configs/classes.yaml"
+  model_config: "ml/configs/hybrid_3dcnn_vit.yaml"
+
+dataset_constraints:
+  dataset_confirmed: false            # Pending final dataset & label confirmation from Khushi
+  dataset_name: null
+  num_classes: null                   # Derived dynamically from ml/configs/classes.yaml
+
+data_splitting:
+  strategy: "spatial_block_or_field_group"
+  prevent_pixel_overlap: true
+  spatial_buffer_pixels: 6            # >= floor(patch_size / 2) for 13x13 patches
+  split_ratios:
+    train: 0.70                       # Proposed default; subject to field/scene group sizes
+    validation: 0.15
+    test: 0.15
+  fit_normalization_on_train_only: true
+
+model_comparison:
+  enabled_candidates:
+    - id: "baseline_spectral_rf"
+      owner: "Khushi"
+      type: "random_forest"
+    - id: "baseline_cnn2d"
+      owner: "Khushi"
+      type: "2d_cnn"
+    - id: "model_cnn3d_standalone"
+      owner: "Harsh"
+      type: "3d_cnn"
+    - id: "model_hybrid_3dcnn_vit"
+      owner: "Harsh"
+      type: "3d_cnn_vit_hybrid"
+  enforce_identical_splits: true
+  track_compute_metrics:
+    - "trainable_parameters"
+    - "peak_vram_mb"
+    - "inference_latency_ms_per_tile"
+
+evaluation:
+  primary_metric: "macro_f1"
+  metrics:
+    - "macro_f1"
+    - "weighted_f1"
+    - "per_class_precision"
+    - "per_class_recall"
+    - "per_class_f1"
+    - "confusion_matrix"
+    - "roc_auc"
+    - "overall_accuracy"
+  validation_frequency_epochs: 1
+  run_test_only_on_best_checkpoint: true
+
+uncertainty:
+  enabled_in_phase1: false
+  planned_method: "mc_dropout"
+  mc_dropout_passes: 10
+  compute_predictive_entropy: true
+  post_hoc_calibration: "temperature_scaling"
+
+outputs:
+  checkpoints_dir: "ml/artifacts/checkpoints"
+  reports_dir: "ml/artifacts/reports"
+  logs_dir: "ml/artifacts/logs"
+  save_confusion_matrix: true
+  save_config_snapshot: true

@@ -170,3 +170,36 @@
 ### 5. Pending Issues & Next Steps
 - Awaiting genuine hyperspectral dataset cube (e.g., EnMAP, PRISMA, AVIRIS, or benchmark `.mat`/`.tif`) from Khushi to populate `spectral_depth` (`D`) and flip `confirmed: true` in `classes.yaml`.
 - Next step: Day 6 model foundation / inference contract review upon instruction.
+
+## Day 6 — Research, Model Evaluation & ViT Integration Strategy
+**Date:** Monday, 16 November 2026  
+**Engineer:** Harsh (ML Engineering Lead)  
+**Branch:** `Harsh`
+
+### 1. Objectives
+- Research and document evaluation metrics appropriate for imbalanced crop stress classification.
+- Define a fair baseline-versus-hybrid comparison framework and spatial leakage prevention strategy.
+- Design the conceptual 3D-CNN to Vision Transformer (ViT) feature integration, tokenization flow, and attention interpretation guardrails.
+- Evaluate predictive uncertainty estimation approaches and select a Week 2 candidate.
+- Create `ml/configs/experiment.yaml`, `docs/ml/experiment-plan.md`, and `docs/ml/vit-integration-plan.md`.
+
+### 2. Key Technical Decisions
+- **Evaluation Metrics:** Selected **Macro F1-Score** and **Per-Class Recall/Precision** alongside **Confusion Matrix** and **ROC-AUC** as primary metrics, avoiding reliance on overall accuracy under class imbalance.
+- **Leakage Prevention:** Mandated group-based (field/scene) or buffered spatial-block splitting (minimum 6-pixel buffer for `13 x 13` patches) with training-only normalization fitting.
+- **ViT Integration Design:** Defined `AdaptiveAvgPool3d((4, 5, 5))` tokenization (`25` spatial-spectral tokens of dim `128` + `[CLS]` token) feeding a compact 2-layer, 4-head Transformer Encoder (`E = 128`) suited for 6 GB VRAM.
+- **Attention Guardrails:** Documented that self-attention maps are diagnostic aids rather than standalone causal explanations, requiring pairing with spectral attribution (SHAP/Grad-CAM).
+- **Uncertainty Recommendation:** Selected **MC-Dropout (`T = 10` passes) + Predictive Entropy** with post-hoc **Temperature Scaling** for Week 2/Phase 3 investigation.
+
+### 3. Files Created / Updated
+- **Created:** `docs/ml/experiment-plan.md`
+- **Created:** `docs/ml/vit-integration-plan.md`
+- **Created:** `ml/configs/experiment.yaml`
+- **Updated:** `docs/ml/development-log.md`
+
+### 4. Validation & Checks Performed
+- Validated `ml/configs/experiment.yaml` syntax and cross-file references against `data.yaml`, `classes.yaml`, and `hybrid_3dcnn_vit.yaml`.
+- Verified no neural network training, fake metrics, or backend/frontend modifications were introduced.
+
+### 5. Pending Questions & Week 2 Decisions
+- Final dataset structure, band count `D`, and class label confirmation from Khushi.
+- Week 2 ablation comparing spatial-spectral tokenization vs. spectral-band tokenization in the ViT encoder.
