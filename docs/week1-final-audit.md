@@ -153,3 +153,32 @@ warning: in the working copy of 'ml/src/terraspectra_ml/data/raster_reader.py', 
 - Dataset source/license verification and label/geographic alignment: pending.
 - GIS/tensor handoff confirmation: pending.
 - No claim of complete real-world satellite data validation is made.
+
+## Latest Verification — 16 November 2026
+
+### Automated ML Tests
+- Test runner: Python unittest
+- Command: `PYTHONPATH=ml/src python -m unittest discover -s ml/tests -v`
+- Result: 23 tests passed.
+- Status: PASS
+
+### Installed Data Libraries
+- NumPy: 2.5.4
+- Rasterio: 1.5.2
+- h5py: 3.16.0
+- pandas: 3.1.1
+- Status: Installed and detected.
+
+### Local Dataset Availability
+- Checked `data/` and `ml/data/`.
+- No local TIFF, CSV, NetCDF, or HDF5 dataset files were found.
+- Actual raster validation and label audit remain pending until approved data is available.
+
+### Remaining External Dependencies
+1. Confirm an authorized hyperspectral raster sample and its provenance.
+2. Confirm rice disease label source, class definitions, and applicable usage rights.
+3. Obtain team approval for the final tensor shape and GIS handoff contract.
+
+### Honest Completion Status
+ML pipeline implementation and automated unit tests are complete.
+Real-data validation and external handoff approvals are not yet verified.
