@@ -203,3 +203,56 @@
 ### 5. Pending Questions & Week 2 Decisions
 - Final dataset structure, band count `D`, and class label confirmation from Khushi.
 - Week 2 ablation comparing spatial-spectral tokenization vs. spectral-band tokenization in the ViT encoder.
+
+## Day 7 — Week 1 Review, Validation & Week 2 Preparation
+**Date:** Tuesday, 17 November 2026  
+**Engineer:** Harsh (ML Engineering Lead)  
+**Branch:** `Harsh`
+
+### 1. Week 1 Audit Summary (Days 1–6)
+| Day | Planned Scope | Completed Deliverables | Status / Notes |
+| :--- | :--- | :--- | :--- |
+| **Day 1** | Environment setup, GPU check, repo init | Python 3.11.9 & RTX 3050 (6 GB, CUDA 12.4) verified; `ml/README.md`, `ml/requirements.txt`, `terraspectra_ml/__init__.py`, `.gitignore` committed (`a41f9e8`, `35d4f88`). | **Complete** (Dedicated `.venv` PyTorch wheel install queued for Week 2 start). |
+| **Day 2** | Hyperspectral cube & input contract | Defined `[B, 1, D, 13, 13]` `float32` tensor spec, ascending band order, and NoData rules in `data-model-contract.md` and `data.yaml` (`21ef46d`). | **Complete** (Sensor name & `D` remain `null` pending dataset lock). |
+| **Day 3** | Prediction task & output contract | Audited local RGB `.jpg` Rice Leaf dataset (rejected as HSI cube); defined provisional binary task (`confirmed: false`) and 4-tier output spec in `classes.yaml`, `model_config.yaml`, `model-specification.md` (`cce150c`). | **Complete** (Final class count `K` awaits verified HSI labels). |
+| **Day 4** | 3D-CNN design & input validation | Designed `[8, 16, 32]` 3D-CNN architecture (`3dcnn-architecture.md`), implemented `input_contract.py` & `test_input_contract.py` (11/11 passed) (`e37cc58`). | **Complete** (Full `nn.Module` implementation belongs to Week 2). |
+| **Day 5** | Hybrid config & tensor/device tests | Created `hybrid_3dcnn_vit.yaml`, added `resolve_target_device` & `expected_device` checks to `input_contract.py`, created `test_tensor_shapes.py` (19/19 total tests passed) (`0ca7932`). | **Complete** |
+| **Day 6** | Evaluation, leakage, ViT & uncertainty | Documented Macro F1 metrics, 4-model comparison ladder, 6-px buffered spatial splits, `AdaptiveAvgPool3d` ViT tokenization, and MC-Dropout uncertainty in `experiment-plan.md`, `vit-integration-plan.md`, `experiment.yaml` (`afd063b`). | **Complete** |
+
+### 2. Consistency & Cross-Team Compatibility Review
+- **Internal Consistency:** Verified all 5 YAML configs and 6 markdown specifications share identical tensor axis ordering (`B_C_D_H_W`), channel conventions (`C=1`), patch window (`13x13`), and provisional class schema (`confirmed: false`).
+- **Khushi (ML & Data Engineering):** Reviewed Khushi's integration inquiry regarding dataset metadata, licensing, and GIS/tensor alignment. Provided exact `[B, 1, D, 13, 13]` `float32` contract, ascending wavelength requirements, and spatial-block splitting rules.
+- **Kanishka (Backend Engineering):** Confirmed 4-tier output handoff (`int16` class map, `float32` confidence/uncertainty rasters, 2-pixel overlap tiling, and preserved affine transform). Awaiting final freeze of `shared/api-schemas/prediction.schema.json`.
+
+### 3. Test Execution Verification (Day 7 Final Run)
+- **Command:** `python -m unittest discover -s ml/tests -v`
+- **Actual Result:** `Ran 19 tests in 0.579s` — `OK` (0 failures, 0 errors).
+
+### 4. Unresolved Dataset, Architecture & Evaluation Decisions
+| Category | Unresolved Question | Why It Matters | Available Info | Missing Info | Owner | Blocks Week 2? |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Dataset** | Which primary hyperspectral scene/benchmark will be locked? | Determines band count `D`, spatial resolution, and preprocessing parameters. | EnMAP L2A, NASA EMIT, or Indian Pines/Salinas identified as candidates. | Final chosen dataset path, wavelength list, and license entry. | Khushi + Harsh | **Yes** (for real data training; synthetic shape tests unblock Day 8 code). |
+| **Labels** | What verified ground-truth labels exist? | Determines output neuron count `K` and whether task is stress vs. land-cover classification. | Provisional 2-class schema (`healthy` vs. `stressed`) in `classes.yaml`. | Verified label mask/CSV and confirmed class count `K`. | Khushi | **Yes** (before final training). |
+| **Architecture** | Optimal ViT tokenization (`spatial-spectral` vs. `spectral-band`) & `embed_dim`? | Impacts parameter count, 6 GB VRAM ceiling, and cross-band attention quality. | Candidate `AdaptiveAvgPool3d((4,5,5))` -> `25` tokens of dim `128` designed. | Empirical ablation comparing standalone 3D-CNN vs. ViT hybrid. | Harsh | **No** (Stage 1–4 3D-CNN precedes ViT). |
+| **Evaluation** | Exact spatial block coordinates / field group IDs? | Required to enforce zero pixel overlap across train/val/test splits. | 6-pixel minimum spatial buffer rule defined in `experiment.yaml`. | Actual scene dimensions or field boundary polygons. | Khushi + Harsh | **Yes** (before running training splits). |
+| **Backend** | Target CRS for Cloud Optimized GeoTIFF (COG) output? | Ensures alignment between ML output rasters, TiTiler, and Deck.gl. | Parent raster CRS + Affine Transform preservation specified. | Agreement on native UTM vs. `EPSG:4326` reprojection. | Kanishka + Ritvik | **No** (for Week 2 model training). |
+
+### 5. Week 2 3D-CNN Implementation Checklist (Do Not Start Today)
+- **Stage 1 — Model Foundation:**
+  - *Tasks:* Create `ml/.venv` and install PyTorch CUDA 12.4; implement `TerraSpectra3DCNN` base initialization in `ml/src/terraspectra_ml/models/cnn3d.py`; wire `validate_model_input` at forward entry.
+  - *Acceptance Criteria:* Instantiates cleanly from `hybrid_3dcnn_vit.yaml` without hardcoded band count `D`.
+- **Stage 2 — Feature Extraction:**
+  - *Tasks:* Implement Conv Blocks 1–3 (`[8, 16, 32]` channels, spectral stride `2`, `BatchNorm3d`, `GELU`, `Dropout3d(0.1)`) and `AdaptiveAvgPool3d`.
+  - *Acceptance Criteria:* Intermediate tensor shapes match `docs/ml/3dcnn-architecture.md` across arbitrary `D >= 16`.
+- **Stage 3 — Classification Head:**
+  - *Tasks:* Implement linear classification head (`[B, 128] -> [B, K]`) dynamically sized from `classes.yaml` and inference softmax/logit helper.
+  - *Acceptance Criteria:* Output logits shape `[B, K]` and probabilities sum to `1.0`.
+- **Stage 4 — Testing:**
+  - *Tasks:* Add `ml/tests/test_cnn3d_forward.py` verifying forward pass, gradient flow, invalid shape rejection, and absence of `NaN`/`Inf` outputs.
+  - *Acceptance Criteria:* All unit tests pass on CPU and CUDA.
+- **Stage 5 — Resource Validation:**
+  - *Tasks:* Benchmark peak VRAM and batch throughput (`batch_size=32`, `13x13` patches) on NVIDIA RTX 3050 (6 GB VRAM) and verify CPU fallback.
+  - *Acceptance Criteria:* Peak VRAM stays safely below 5.0 GB with recorded latency metrics.
+- **Stage 6 — ViT Preparation:**
+  - *Tasks:* Verify 3D-CNN pooled token output `[B, 25, 128]` and prepare `vit_spectral.py` interface only after standalone 3D-CNN baseline is validated.
+  - *Acceptance Criteria:* Clean tensor handoff verified before hybrid assembly.
