@@ -784,3 +784,62 @@
     width: 100%;
   }
 }
+/* VIDEO UPLOAD AND RECORDING */
+
+.video-upload-section {
+  width: 100%;
+  max-width: 620px;
+  margin: 28px auto 10px;
+  padding: 22px;
+  background: #f7faf7;
+  border: 1px solid #e5eee6;
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.video-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  color: #287d46;
+}
+
+.video-section-heading h3 {
+  color: #183b2a;
+  margin: 0 0 5px;
+}
+
+.video-section-heading p,
+.video-format-note {
+  color: #89988e;
+  font-size: 13px;
+  margin: 0;
+  text-align: center;
+}
+
+.video-browse-button {
+  cursor: pointer;
+}
+
+.media-video-preview {
+  width: 100%;
+  max-height: 420px;
+  background: #17251b;
+  border-radius: 15px;
+}
+
+.recording-indicator {
+  color: #d93636;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 12px;
+}
+
+@media (max-width: 600px) {
+  .video-upload-section {
+    padding: 16px;
+  }
+}
