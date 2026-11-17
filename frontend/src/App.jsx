@@ -1,9 +1,8 @@
-
 import { useState, useRef, useEffect } from "react";
 import {
   LayoutDashboard, ScanLine, Sprout, History, Settings,
   Bell, Search, Leaf, Upload, ImagePlus, ArrowRight,
-  Activity, Menu, X, ShieldCheck, Camera, Video
+  Activity, Menu, X, ShieldCheck, Camera, Video, Square
 } from "lucide-react";
 import "./App.css";
 
@@ -15,86 +14,171 @@ const navItems = [
   { name: "Settings", icon: Settings },
 ];
 
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
+
 function App() {
   const [activePage, setActivePage] = useState("Crop Scanner");
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [cameraOpen, setCameraOpen] = useState(false);
-  const [selectedVideo, setSelectedVideo] = useState(null);
-  const [selectedVideoFile, setSelectedVideoFile] = useState(null);
-  const [videoRecorderOpen, setVideoRecorderOpen] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
 
-  const videoRef = useRef(null);
+  const [selectedMedia, setSelectedMedia] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [mediaType, setMediaType] = useState(null);
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [videoQuality, setVideoQuality] = useState(null);
+  const [enhancingVideo, setEnhancingVideo] = useState(false);
+
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraMode, setCameraMode] = useState("photo");
+  const [recording, setRecording] = useState(false);
+
+  const cameraVideoRef = useRef(null);
   const streamRef = useRef(null);
   const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
+  const discardRecordingRef = useRef(false);
 
-  // Start the live camera preview
+  // Attach the live camera stream to the preview.
   useEffect(() => {
     const startVideo = async () => {
-      if (
-        (cameraOpen || videoRecorderOpen) &&
-        videoRef.current &&
-        streamRef.current
-      ) {
-        const video = videoRef.current;
-        video.srcObject = streamRef.current;
+      if (cameraOpen && cameraVideoRef.current && streamRef.current) {
+        cameraVideoRef.current.srcObject = streamRef.current;
 
         try {
-          await video.play();
+          await cameraVideoRef.current.play();
         } catch (error) {
-          console.error("Video playback error:", error);
+          console.error("Camera preview error:", error);
         }
       }
     };
 
     startVideo();
-  }, [cameraOpen, videoRecorderOpen]);
+  }, [cameraOpen]);
 
-  // Stop camera when component is removed
+  // Stop camera when the component unmounts.
   useEffect(() => {
     return () => {
       streamRef.current?.getTracks().forEach((track) => track.stop());
     };
   }, []);
 
-  // Handle uploaded image
-  const handleImage = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      alert("Please select an image file.");
-      event.target.value = "";
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      alert("Image size must be less than 10 MB.");
-      event.target.value = "";
-      return;
-    }
-
-    if (selectedImage) URL.revokeObjectURL(selectedImage);
-    if (selectedVideo) URL.revokeObjectURL(selectedVideo);
-
-    setSelectedVideo(null);
-    setSelectedVideoFile(null);
-
+  // Add one or more images, or select a video.
+  const setMedia = (file, type, navigateToOverview = true) => {
     const previewURL = URL.createObjectURL(file);
 
-    setSelectedImage(previewURL);
-    setSelectedFile(file);
-    setActivePage("Overview");
-    setMobileOpen(false);
+    if (type === "image") {
+      if (mediaType === "video" && selectedMedia) {
+        URL.revokeObjectURL(selectedMedia);
+        setSelectedImages([]);
+      }
+
+      setSelectedImages((current) => [
+        ...current,
+        {
+          id: `${Date.now()}-${Math.random()}`,
+          file,
+          url: previewURL,
+        },
+      ]);
+
+      setSelectedMedia(previewURL);
+      setSelectedFile(file);
+      setMediaType("image");
+    } else {
+      selectedImages.forEach((image) => URL.revokeObjectURL(image.url));
+
+      if (selectedMedia) {
+        URL.revokeObjectURL(selectedMedia);
+      }
+
+      setSelectedImages([]);
+      setSelectedMedia(previewURL);
+      setSelectedFile(file);
+      setMediaType("video");
+      setVideoQuality(null);
+    }
+
+    if (navigateToOverview) {
+      setActivePage("Overview");
+      setMobileOpen(false);
+    }
+  };
+
+  // Handle multiple image uploads.
+  const handleImage = (event) => {
+    const files = Array.from(event.target.files || []);
+
+    if (!files.length) return;
+
+    const validFiles = [];
+
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) {
+        alert(`${file.name} is not a valid image.`);
+        continue;
+      }
+
+      if (file.size > MAX_IMAGE_SIZE) {
+        alert(`${file.name} is larger than 10 MB and was skipped.`);
+        continue;
+      }
+
+      validFiles.push(file);
+    }
+
+    if (validFiles.length) {
+      if (mediaType === "video" && selectedMedia) {
+        URL.revokeObjectURL(selectedMedia);
+      }
+
+      const newImages = validFiles.map((file) => ({
+        id: `${Date.now()}-${Math.random()}-${file.name}`,
+        file,
+        url: URL.createObjectURL(file),
+      }));
+
+      setSelectedImages((current) => [...current, ...newImages]);
+      setSelectedMedia(newImages[0].url);
+      setSelectedFile(newImages[0].file);
+      setMediaType("image");
+      setActivePage("Overview");
+      setMobileOpen(false);
+    }
 
     event.target.value = "";
   };
 
-  // Handle uploaded video
+  // Remove one image from the selected batch.
+  const removeImage = (imageId) => {
+    const imageToRemove = selectedImages.find(
+      (image) => image.id === imageId
+    );
+
+    if (imageToRemove) {
+      URL.revokeObjectURL(imageToRemove.url);
+    }
+
+    const remaining = selectedImages.filter(
+      (image) => image.id !== imageId
+    );
+
+    setSelectedImages(remaining);
+
+    if (remaining.length) {
+      setSelectedMedia(remaining[0].url);
+      setSelectedFile(remaining[0].file);
+      setMediaType("image");
+    } else {
+      setSelectedMedia(null);
+      setSelectedFile(null);
+      setMediaType(null);
+    }
+  };
+
+  // Handle video upload.
   const handleVideo = (event) => {
     const file = event.target.files?.[0];
+
     if (!file) return;
 
     if (!file.type.startsWith("video/")) {
@@ -103,169 +187,246 @@ function App() {
       return;
     }
 
-    if (file.size > 100 * 1024 * 1024) {
+    if (file.size > MAX_VIDEO_SIZE) {
       alert("Video size must be less than 100 MB.");
       event.target.value = "";
       return;
     }
 
-    if (selectedVideo) URL.revokeObjectURL(selectedVideo);
-    if (selectedImage) URL.revokeObjectURL(selectedImage);
-
-    setSelectedVideo(URL.createObjectURL(file));
-    setSelectedVideoFile(file);
-    setSelectedImage(null);
-    setSelectedFile(null);
-    setActivePage("Overview");
-    setMobileOpen(false);
+    setMedia(file, "video");
+    inspectVideoQuality(file);
 
     event.target.value = "";
   };
 
-  // Open camera for video recording
-  const openVideoRecorder = async () => {
-    if (
-      !navigator.mediaDevices?.getUserMedia ||
-      !window.MediaRecorder
-    ) {
-      alert(
-        "Video recording is not supported in this browser. Try the latest Chrome or Edge."
-      );
-      return;
-    }
+  // Read video dimensions and detect low resolution.
+  const inspectVideoQuality = (file) => {
+    const probe = document.createElement("video");
+    const url = URL.createObjectURL(file);
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: false,
+    probe.preload = "metadata";
+
+    probe.onloadedmetadata = () => {
+      const width = probe.videoWidth;
+      const height = probe.videoHeight;
+
+      setVideoQuality({
+        width,
+        height,
+        lowQuality: width < 720 || height < 480,
       });
 
-      streamRef.current = stream;
-      setVideoRecorderOpen(true);
-    } catch (error) {
-      console.error("Video camera error:", error);
-      alert(
-        "Unable to open camera. Please allow camera permission and close other apps using the camera."
-      );
-    }
+      URL.revokeObjectURL(url);
+    };
+
+    probe.onerror = () => {
+      setVideoQuality({
+        width: 0,
+        height: 0,
+        lowQuality: null,
+      });
+
+      URL.revokeObjectURL(url);
+    };
+
+    probe.src = url;
   };
 
-  // Start or stop recording
-  const toggleRecording = () => {
-    if (isRecording) {
-      mediaRecorderRef.current?.stop();
-      setIsRecording(false);
+  // Upscale a low-resolution video to at least 720p.
+  // This increases output dimensions but cannot restore missing details.
+  const enhanceVideo = async () => {
+    if (!selectedFile || mediaType !== "video" || enhancingVideo) return;
+
+    if (
+      !window.MediaRecorder ||
+      !HTMLCanvasElement.prototype.captureStream
+    ) {
+      alert(
+        "Video upscaling is not supported in this browser. Please use the latest Chrome or Edge."
+      );
       return;
     }
 
-    const stream = streamRef.current;
+    setEnhancingVideo(true);
 
-    if (!stream) {
-      alert("Camera is not ready. Please try again.");
-      return;
-    }
+    const sourceUrl = URL.createObjectURL(selectedFile);
+    const video = document.createElement("video");
 
-    const mimeType = [
-      "video/webm;codecs=vp9",
-      "video/webm;codecs=vp8",
-      "video/webm",
-    ].find((type) => MediaRecorder.isTypeSupported(type));
+    video.src = sourceUrl;
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "auto";
+
+    let canvasStream = null;
+    let animationId = null;
 
     try {
-      const recorder = new MediaRecorder(
-        stream,
-        mimeType ? { mimeType } : undefined
+      await new Promise((resolve, reject) => {
+        video.onloadedmetadata = resolve;
+        video.onerror = () =>
+          reject(new Error("Could not read this video file."));
+      });
+
+      const sourceWidth = video.videoWidth;
+      const sourceHeight = video.videoHeight;
+
+      if (!sourceWidth || !sourceHeight) {
+        throw new Error("Video dimensions could not be detected.");
+      }
+
+      if (video.duration > 120) {
+        throw new Error(
+          "Please use a video shorter than 2 minutes for browser-based upscaling."
+        );
+      }
+
+      const scale = Math.max(
+        1,
+        1280 / sourceWidth,
+        720 / sourceHeight
       );
+
+      const outputWidth = Math.round(sourceWidth * scale);
+      const outputHeight = Math.round(sourceHeight * scale);
+
+      const canvas = document.createElement("canvas");
+
+      canvas.width = outputWidth;
+      canvas.height = outputHeight;
+
+      const context = canvas.getContext("2d");
+
+      if (!context) {
+        throw new Error("Could not prepare the video processor.");
+      }
+
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = "high";
+
+      canvasStream = canvas.captureStream(30);
+
+      const mimeOptions = [
+        "video/webm;codecs=vp9",
+        "video/webm;codecs=vp8",
+        "video/webm",
+      ];
+
+      const outputMime = mimeOptions.find((type) =>
+        MediaRecorder.isTypeSupported(type)
+      );
+
+      const recorder = outputMime
+        ? new MediaRecorder(canvasStream, { mimeType: outputMime })
+        : new MediaRecorder(canvasStream);
 
       const chunks = [];
 
-      recorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          chunks.push(event.data);
-        }
-      };
+      const recordingFinished = new Promise((resolve, reject) => {
+        recorder.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) {
+            chunks.push(event.data);
+          }
+        };
 
-      recorder.onstop = () => {
-        const blob = new Blob(chunks, {
-          type: recorder.mimeType || "video/webm",
-        });
+        recorder.onerror = () => {
+          reject(new Error("Video conversion failed."));
+        };
 
-        if (!blob.size) {
-          alert("No video was recorded. Please try again.");
-          return;
-        }
+        recorder.onstop = resolve;
+      });
 
-        if (blob.size > 100 * 1024 * 1024) {
-          alert("Recorded video is larger than 100 MB.");
-          return;
-        }
+      const drawFrame = () => {
+        if (video.ended || video.paused) return;
 
-        const extension = blob.type.includes("mp4") ? "mp4" : "webm";
-
-        const file = new File(
-          [blob],
-          `plant-video-${Date.now()}.${extension}`,
-          { type: blob.type }
+        context.drawImage(
+          video,
+          0,
+          0,
+          outputWidth,
+          outputHeight
         );
 
-        if (selectedVideo) URL.revokeObjectURL(selectedVideo);
-        if (selectedImage) URL.revokeObjectURL(selectedImage);
-
-        setSelectedVideo(URL.createObjectURL(file));
-        setSelectedVideoFile(file);
-        setSelectedImage(null);
-        setSelectedFile(null);
-        setActivePage("Overview");
-        setMobileOpen(false);
-
-        stream.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-        setVideoRecorderOpen(false);
+        animationId = requestAnimationFrame(drawFrame);
       };
 
-      recorder.onerror = () => {
-        alert("Recording failed. Please try again.");
-        setIsRecording(false);
-      };
+      video.currentTime = 0;
 
-      mediaRecorderRef.current = recorder;
-      recorder.start();
-      setIsRecording(true);
-    } catch (error) {
-      console.error("Recording error:", error);
-      alert("Could not start video recording in this browser.");
-    }
-  };
+      await video.play();
 
-  // Close video recorder
-  const closeVideoRecorder = () => {
-    const recorder = mediaRecorderRef.current;
+      context.drawImage(
+        video,
+        0,
+        0,
+        outputWidth,
+        outputHeight
+      );
 
-    if (recorder && recorder.state === "recording") {
-      recorder.onstop = null;
+      recorder.start(250);
+      drawFrame();
+
+      await new Promise((resolve) => {
+        video.onended = resolve;
+      });
+
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+
       recorder.stop();
+
+      await recordingFinished;
+
+      const outputBlob = new Blob(chunks, {
+        type: recorder.mimeType || "video/webm",
+      });
+
+      if (!outputBlob.size) {
+        throw new Error("The converted video is empty.");
+      }
+
+      if (outputBlob.size > MAX_VIDEO_SIZE) {
+        throw new Error(
+          "The enhanced video is larger than 100 MB. Try a shorter video."
+        );
+      }
+
+      const enhancedFile = new File(
+        [outputBlob],
+        `terraspectra-upscaled-${Date.now()}.webm`,
+        { type: outputBlob.type }
+      );
+
+      setMedia(enhancedFile, "video");
+      inspectVideoQuality(enhancedFile);
+
+      alert(
+        `Video upscaled to ${outputWidth} × ${outputHeight}. The new WebM copy is silent. Upscaling does not restore details lost in the original video.`
+      );
+    } catch (error) {
+      console.error("Video upscaling error:", error);
+
+      alert(
+        error.message ||
+          "Unable to upscale this video. Please try another file."
+      );
+    } finally {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+
+      canvasStream?.getTracks().forEach((track) => track.stop());
+
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+
+      URL.revokeObjectURL(sourceUrl);
+      setEnhancingVideo(false);
     }
-
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-    mediaRecorderRef.current = null;
-
-    setIsRecording(false);
-    setVideoRecorderOpen(false);
   };
 
-  // Remove selected video
-  const removeVideo = () => {
-    if (selectedVideo) {
-      URL.revokeObjectURL(selectedVideo);
-    }
-
-    setSelectedVideo(null);
-    setSelectedVideoFile(null);
-  };
-
-  // Open laptop or mobile camera
-  const openCamera = async () => {
+  // Open the webcam for taking a photo or recording a video.
+  const openCamera = async (mode = "photo") => {
     if (!navigator.mediaDevices?.getUserMedia) {
       alert(
         "Camera is not supported. Please use localhost or a secure connection."
@@ -276,54 +437,73 @@ function App() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
-        audio: false,
+        audio: mode === "record",
       });
 
       streamRef.current = stream;
+
+      setCameraMode(mode);
+      setRecording(false);
+      discardRecordingRef.current = false;
       setCameraOpen(true);
     } catch (error) {
       console.error("Camera error:", error);
 
       if (error.name === "NotAllowedError") {
         alert(
-          "Camera permission denied. Please allow camera access in your browser settings."
+          "Camera or microphone permission denied. Please allow access in your browser settings."
         );
       } else if (error.name === "NotFoundError") {
-        alert("No camera was found on this device.");
+        alert("No camera or microphone was found on this device.");
       } else if (error.name === "NotReadableError") {
         alert(
-          "Your camera may already be in use by another application. Close it and try again."
+          "Your camera may already be in use. Close other camera applications and try again."
         );
       } else {
         alert(
-          "Unable to open camera. Please check your camera connection and permissions."
+          "Unable to open the camera. Please check device permissions and try again."
         );
       }
     }
   };
 
-  // Close camera and stop webcam
-  const closeCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-
-    setCameraOpen(false);
+  // Stop the camera stream.
+  const stopCameraStream = () => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
   };
 
-  // Capture photo from webcam
-  const capturePhoto = () => {
-    const video = videoRef.current;
+  // Close camera after scanning.
+  const closeCamera = () => {
+    discardRecordingRef.current = true;
 
-    if (!video || !video.videoWidth) {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+
+    stopCameraStream();
+
+    setRecording(false);
+    setCameraOpen(false);
+
+    if (cameraMode === "photo" && selectedImages.length > 0) {
+      setActivePage("Overview");
+    }
+  };
+
+  // Capture a still photo from the webcam.
+  const capturePhoto = () => {
+    const videoElement = cameraVideoRef.current;
+
+    if (!videoElement || !videoElement.videoWidth) {
       alert("Camera is not ready. Please try again.");
       return;
     }
 
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
 
     const context = canvas.getContext("2d");
 
@@ -332,7 +512,13 @@ function App() {
       return;
     }
 
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    context.drawImage(
+      videoElement,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
 
     canvas.toBlob(
       (blob) => {
@@ -347,49 +533,145 @@ function App() {
           { type: "image/jpeg" }
         );
 
-        if (file.size > 10 * 1024 * 1024) {
+        if (file.size > MAX_IMAGE_SIZE) {
           alert("Captured image is larger than 10 MB.");
           return;
         }
 
-        if (selectedImage) {
-          URL.revokeObjectURL(selectedImage);
-        }
-
-        const previewURL = URL.createObjectURL(file);
-
-        setSelectedImage(previewURL);
-        setSelectedFile(file);
-        setActivePage("Overview");
-        setMobileOpen(false);
-
-        closeCamera();
+        // Keep the camera open so the user can capture more photos.
+        setMedia(file, "image", false);
       },
       "image/jpeg",
       0.9
     );
   };
 
-  // Remove selected image
-  const removeImage = () => {
-    if (selectedImage) {
-      URL.revokeObjectURL(selectedImage);
+  // Start recording from the webcam.
+  const startRecording = () => {
+    const stream = streamRef.current;
+
+    if (!stream) {
+      alert("Camera is not ready. Please reopen the camera.");
+      return;
     }
 
-    setSelectedImage(null);
-    setSelectedFile(null);
+    if (!window.MediaRecorder) {
+      alert(
+        "Video recording is not supported in this browser. Try Chrome or Edge."
+      );
+      return;
+    }
+
+    const supportedTypes = [
+      "video/webm;codecs=vp9",
+      "video/webm;codecs=vp8",
+      "video/webm",
+    ];
+
+    const mimeType = supportedTypes.find((type) =>
+      MediaRecorder.isTypeSupported(type)
+    );
+
+    try {
+      recordedChunksRef.current = [];
+      discardRecordingRef.current = false;
+
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onerror = (event) => {
+        console.error("Recording error:", event.error);
+        alert("Video recording failed. Please try again.");
+        setRecording(false);
+      };
+
+      recorder.onstop = () => {
+        if (discardRecordingRef.current) return;
+
+        const finalType = recorder.mimeType || "video/webm";
+
+        const videoBlob = new Blob(recordedChunksRef.current, {
+          type: finalType,
+        });
+
+        if (!videoBlob.size) {
+          alert("No video was recorded. Please try again.");
+          return;
+        }
+
+        if (videoBlob.size > MAX_VIDEO_SIZE) {
+          alert(
+            "Recorded video is larger than 100 MB. Please record a shorter video."
+          );
+          return;
+        }
+
+        const extension = finalType.includes("mp4") ? "mp4" : "webm";
+
+        const file = new File(
+          [videoBlob],
+          `plant-video-${Date.now()}.${extension}`,
+          { type: finalType }
+        );
+
+        stopCameraStream();
+        setCameraOpen(false);
+        setRecording(false);
+
+        setMedia(file, "video");
+        inspectVideoQuality(file);
+      };
+
+      recorder.start();
+      setRecording(true);
+    } catch (error) {
+      console.error("Unable to start recording:", error);
+      alert("Unable to start video recording. Please try again.");
+    }
   };
 
-  // Overview page
+  // Stop and save the current recording.
+  const stopRecording = () => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  // Remove all selected media.
+  const removeMedia = () => {
+    selectedImages.forEach((image) => {
+      URL.revokeObjectURL(image.url);
+    });
+
+    if (selectedMedia && mediaType === "video") {
+      URL.revokeObjectURL(selectedMedia);
+    }
+
+    setSelectedImages([]);
+    setSelectedMedia(null);
+    setSelectedFile(null);
+    setMediaType(null);
+    setVideoQuality(null);
+    setEnhancingVideo(false);
+  };
+
+  // Overview page.
   const renderOverview = () => (
     <>
       <div className="page-heading">
         <div>
           <p className="eyebrow">WELCOME TO TERRASPECTRA</p>
           <h1>Dashboard Overview</h1>
-          <p className="subtitle">
-            Your smart crop health workspace.
-          </p>
+          <p className="subtitle">Your smart crop health workspace.</p>
         </div>
       </div>
 
@@ -416,100 +698,176 @@ function App() {
         </div>
       </div>
 
-      {selectedImage || selectedVideo ? (
+      {selectedMedia ? (
         <section className="content-card uploaded-card">
           <div className="uploaded-heading">
             <div>
               <p className="eyebrow">CROP SCANNER</p>
+
               <h2>
-                {selectedVideo
+                {mediaType === "video"
                   ? "Video Ready for Analysis"
-                  : "Image Ready for Analysis"}
+                  : `${selectedImages.length} Plant Image${
+                      selectedImages.length === 1 ? "" : "s"
+                    } Ready`}
               </h2>
-              <p>Your crop media is ready for analysis.</p>
+
+              <p>
+                {mediaType === "video"
+                  ? "Your video is ready for the next step."
+                  : "Review your plant images before analysis."}
+              </p>
             </div>
 
             <span className="development-tag">
-              {selectedVideo ? "Video Ready" : "Image Ready"}
+              {mediaType === "video" ? "Video Ready" : "Image Ready"}
             </span>
           </div>
 
           <div className="preview-container">
-            {selectedVideo ? (
+            {mediaType === "video" ? (
               <video
-                src={selectedVideo}
+                src={selectedMedia}
                 controls
+                playsInline
                 className="overview-preview media-video-preview"
               />
             ) : (
-              <img
-                src={selectedImage}
-                alt="Uploaded crop"
-                className="overview-preview"
-              />
+              <div className="plant-image-gallery">
+                {selectedImages.map((image, index) => (
+                  <div className="plant-image-item" key={image.id}>
+                    <img
+                      src={image.url}
+                      alt={`Plant sample ${index + 1}`}
+                    />
+
+                    <span>Image {index + 1}</span>
+
+                    <button
+                      type="button"
+                      className="remove-image-button"
+                      onClick={() => removeImage(image.id)}
+                      aria-label={`Remove image ${index + 1}`}
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
           <div className="file-information">
-            <Upload size={20} />
+            {mediaType === "video" ? (
+              <Video size={20} />
+            ) : (
+              <Upload size={20} />
+            )}
+
             <div>
               <strong>
-                {selectedVideoFile?.name || selectedFile?.name}
+                {mediaType === "video"
+                  ? selectedFile?.name
+                  : `${selectedImages.length} image(s) selected`}
               </strong>
+
               <span>
-                {(selectedVideoFile || selectedFile)
-                  ? `${(
-                      (selectedVideoFile || selectedFile).size /
+                {mediaType === "video"
+                  ? `${(selectedFile?.size / (1024 * 1024)).toFixed(2)} MB`
+                  : `${(
+                      selectedImages.reduce(
+                        (total, image) => total + image.file.size,
+                        0
+                      ) /
                       (1024 * 1024)
-                    ).toFixed(2)} MB`
-                  : ""}
+                    ).toFixed(2)} MB total`}
               </span>
             </div>
           </div>
+
+          {mediaType === "video" && videoQuality && (
+            <div
+              className={`video-quality-notice ${
+                videoQuality.lowQuality
+                  ? "quality-warning"
+                  : "quality-good"
+              }`}
+            >
+              <strong>
+                {videoQuality.width} × {videoQuality.height} video
+                {videoQuality.lowQuality
+                  ? " — Low resolution detected"
+                  : " — Resolution looks suitable"}
+              </strong>
+
+              <p>
+                {videoQuality.lowQuality
+                  ? "This video has low resolution. You can upscale its dimensions to at least 720p. This browser conversion creates a silent video and cannot recover details missing from the original."
+                  : "Keep the plant in focus and use good lighting for the best analysis."}
+              </p>
+
+              {videoQuality.lowQuality && (
+                <button
+                  className="secondary-button"
+                  onClick={enhanceVideo}
+                  disabled={enhancingVideo}
+                  type="button"
+                >
+                  {enhancingVideo
+                    ? "Upscaling video..."
+                    : "Upscale Video to 720p"}
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="upload-actions">
             <button
               className="primary-button"
               onClick={() =>
                 alert(
-                  `${selectedVideo ? "Video" : "Image"} is ready! Disease analysis will be enabled after backend and ML integration.`
+                  `${
+                    mediaType === "video"
+                      ? "Video"
+                      : `${selectedImages.length} image(s)`
+                  } selected successfully! Disease analysis will be enabled after backend and ML integration.`
                 )
               }
             >
               <Activity size={18} />
-              Analyse Media
+              Analyse {mediaType === "video" ? "Video" : "Images"}
             </button>
 
             <button
               className="secondary-button"
               onClick={() => setActivePage("Crop Scanner")}
             >
-              Change Media
+              Add / Change Media
             </button>
 
             <button
               className="secondary-button"
-              onClick={() => {
-                removeImage();
-                removeVideo();
-              }}
+              onClick={removeMedia}
             >
-              Remove Media
+              Remove All
             </button>
           </div>
 
           <p className="analysis-note">
             <ShieldCheck size={16} />
-            Disease detection will be available after model integration.
+            Disease detection will be available after backend and model integration.
           </p>
         </section>
       ) : (
         <section className="content-card get-started-card">
           <div className="upload-icon"><Leaf size={35} /></div>
+
           <h2>Start Your Crop Analysis</h2>
+
           <p>
-            Upload a rice leaf image to begin your crop health analysis.
+            Upload plant images or video, or scan your plant directly using the camera.
           </p>
+
           <button
             className="primary-button"
             onClick={() => setActivePage("Crop Scanner")}
@@ -521,15 +879,16 @@ function App() {
     </>
   );
 
-  // Crop Scanner page
+  // Crop Scanner page.
   const renderScanner = () => (
     <>
       <div className="page-heading">
         <div>
           <p className="eyebrow">AGRICULTURE INTELLIGENCE PLATFORM</p>
           <h1>Crop Scanner</h1>
+
           <p className="subtitle">
-            Upload or capture a clear image of your crop for analysis.
+            Scan a plant with your camera, or upload multiple plant images and a video.
           </p>
         </div>
 
@@ -543,102 +902,123 @@ function App() {
           <Upload size={38} />
         </div>
 
-        <h2>Upload Crop Image</h2>
+        <h2>Upload Crop Media</h2>
+
         <p className="upload-description">
-          Select a clear image of a crop leaf to get started.
+          Add several clear plant images, record a video, or scan the plant directly with your camera.
         </p>
 
-        <label className="drop-area">
-          <ImagePlus size={34} />
-          <strong>Choose an image</strong>
-          <span>JPG, JPEG or PNG · Maximum 10 MB</span>
-          <input
-            type="file"
-            accept="image/png,image/jpeg"
-            onChange={handleImage}
-            hidden
-          />
-        </label>
+        <div className="media-upload-options">
+          <label className="drop-area">
+            <ImagePlus size={34} />
 
-        <div className="upload-actions">
-          <label className="primary-button">
-            <Upload size={18} />
-            Browse Image
+            <strong>Choose plant images</strong>
+
+            <span>
+              JPG, JPEG or PNG · Up to 10 MB each · Select multiple images
+            </span>
+
             <input
               type="file"
-              accept="image/png,image/jpeg"
+              accept="image/png,image/jpeg,image/webp"
+              multiple
               onChange={handleImage}
               hidden
             />
           </label>
 
-          <button
-            className="secondary-button"
-            onClick={openCamera}
-          >
-            <Camera size={18} />
-            Take Photo
-          </button>
-        </div>
+          <label className="drop-area">
+            <Video size={34} />
 
-        <div className="video-upload-section">
-          <div className="video-section-heading">
-            <Video size={22} />
-            <div>
-              <h3>Video Input</h3>
-              <p>Upload a crop video or record one using your camera.</p>
-            </div>
-          </div>
+            <strong>Choose a video</strong>
 
-          <label className="secondary-button video-browse-button">
-            <Upload size={18} />
-            Upload Video
+            <span>MP4, MOV or WebM · Maximum 100 MB</span>
+
             <input
               type="file"
-              accept="video/mp4,video/webm,video/quicktime,video/*"
+              accept="video/mp4,video/quicktime,video/webm,video/*"
               onChange={handleVideo}
               hidden
             />
           </label>
+        </div>
 
-          <p className="video-format-note">
-            MP4, WEBM or MOV · Maximum 100 MB
-          </p>
+        <div className="upload-actions">
+          <label className="primary-button">
+            <Upload size={18} />
+            Browse Image
+
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              multiple
+              onChange={handleImage}
+              hidden
+            />
+          </label>
+
+          <label className="secondary-button">
+            <Video size={18} />
+            Browse Video
+
+            <input
+              type="file"
+              accept="video/mp4,video/quicktime,video/webm,video/*"
+              onChange={handleVideo}
+              hidden
+            />
+          </label>
+        </div>
+
+        <div className="upload-actions camera-options">
+          <button
+            className="primary-button"
+            onClick={() => openCamera("photo")}
+          >
+            <ScanLine size={18} />
+            Scan Plant Live
+          </button>
 
           <button
             className="secondary-button"
-            onClick={openVideoRecorder}
+            onClick={() => openCamera("record")}
           >
             <Video size={18} />
             Record Video
           </button>
         </div>
 
+        <p className="scanner-help-text">
+          Capture different plant angles in one camera session. Close the camera when you have finished, then review your photos.
+        </p>
+
         <span className="development-tag">
           <ShieldCheck size={15} />
-          Ready for model integration
+          Ready for backend and model integration
         </span>
       </section>
     </>
   );
 
-  // Other pages
+  // Other pages.
   const pageDetails = {
     "Disease Analysis": {
       icon: Sprout,
       description:
-        "Disease names, confidence scores, symptoms and treatment recommendations will appear here after model integration."
+        "Disease names, confidence scores, symptoms and treatment recommendations will appear here after model integration.",
     },
+
     "Scan History": {
       icon: History,
       description:
-        "Your previous crop scans and their analysis results will be displayed here."
+        "Your previous crop scans and their analysis results will be displayed here.",
     },
+
     "Settings": {
       icon: Settings,
       description:
-        "Manage your profile and application preferences here."
-    }
+        "Manage your profile and application preferences here.",
+    },
   };
 
   const renderOtherPage = () => {
@@ -659,11 +1039,15 @@ function App() {
           <div className="upload-icon">
             <PageIcon size={36} />
           </div>
+
           <h2>{activePage}</h2>
+
           <p>{details.description}</p>
+
           <span className="development-tag">
             Frontend page under development
           </span>
+
           <button
             className="primary-button"
             onClick={() => setActivePage("Overview")}
@@ -677,16 +1061,25 @@ function App() {
 
   return (
     <div className="app-shell">
-
-      {/* Live Camera Window */}
+      {/* Live camera and video recording modal. */}
       {cameraOpen && (
         <div className="camera-overlay">
           <div className="camera-modal">
             <div className="camera-heading">
               <div>
                 <p className="eyebrow">TERRASPECTRA CAMERA</p>
-                <h2>Capture Plant Photo</h2>
-                <p>Position your plant clearly inside the camera.</p>
+
+                <h2>
+                  {cameraMode === "record"
+                    ? "Record Plant Video"
+                    : "Capture Plant Photo"}
+                </h2>
+
+                <p>
+                  {cameraMode === "record"
+                    ? "Keep the plant in view and record a short video."
+                    : "Position the plant clearly, capture different angles, and close the camera when finished."}
+                </p>
               </div>
 
               <button
@@ -699,7 +1092,7 @@ function App() {
             </div>
 
             <video
-              ref={videoRef}
+              ref={cameraVideoRef}
               autoPlay
               playsInline
               muted
@@ -707,13 +1100,34 @@ function App() {
             />
 
             <div className="upload-actions camera-actions">
-              <button
-                className="primary-button"
-                onClick={capturePhoto}
-              >
-                <Camera size={18} />
-                Capture Photo
-              </button>
+              {cameraMode === "photo" ? (
+                <button
+                  className="primary-button"
+                  onClick={capturePhoto}
+                >
+                  <Camera size={18} />
+                  Capture Photo
+                </button>
+              ) : (
+                <button
+                  className={
+                    recording ? "recording-button" : "primary-button"
+                  }
+                  onClick={
+                    recording ? stopRecording : startRecording
+                  }
+                >
+                  {recording ? (
+                    <Square size={17} />
+                  ) : (
+                    <Video size={18} />
+                  )}
+
+                  {recording
+                    ? "Stop & Save Video"
+                    : "Start Recording"}
+                </button>
+              )}
 
               <button
                 className="secondary-button"
@@ -722,58 +1136,11 @@ function App() {
                 Cancel
               </button>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* Live Video Recording Window */}
-      {videoRecorderOpen && (
-        <div className="camera-overlay">
-          <div className="camera-modal">
-            <div className="camera-heading">
-              <div>
-                <p className="eyebrow">TERRASPECTRA VIDEO</p>
-                <h2>Record Crop Video</h2>
-                <p>Keep the plant in view while recording.</p>
-              </div>
-
-              <button
-                className="icon-button"
-                onClick={closeVideoRecorder}
-                aria-label="Close video recorder"
-              >
-                <X />
-              </button>
-            </div>
-
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="camera-preview"
-            />
-
-            <div className="upload-actions camera-actions">
-              <button
-                className="primary-button"
-                onClick={toggleRecording}
-              >
-                <Video size={18} />
-                {isRecording ? "Stop & Save" : "Start Recording"}
-              </button>
-
-              <button
-                className="secondary-button"
-                onClick={closeVideoRecorder}
-              >
-                Cancel
-              </button>
-            </div>
-
-            {isRecording && (
-              <p className="recording-indicator">
-                ● Recording in progress...
+            {recording && (
+              <p className="recording-status">
+                <span className="recording-dot" />
+                Recording in progress...
               </p>
             )}
           </div>
@@ -790,7 +1157,10 @@ function App() {
 
       <aside className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>
         <div className="brand">
-          <div className="brand-icon"><Leaf size={34} /></div>
+          <div className="brand-icon">
+            <Leaf size={34} />
+          </div>
+
           <div>
             <h2>Terra<span>Spectra</span></h2>
             <p>Smart Crop Health Platform</p>
@@ -811,7 +1181,9 @@ function App() {
           {navItems.map(({ name, icon: Icon }) => (
             <button
               key={name}
-              className={`nav-item ${activePage === name ? "active" : ""}`}
+              className={`nav-item ${
+                activePage === name ? "active" : ""
+              }`}
               onClick={() => {
                 setActivePage(name);
                 setMobileOpen(false);
@@ -824,7 +1196,10 @@ function App() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="footer-icon"><Sprout size={27} /></div>
+          <div className="footer-icon">
+            <Sprout size={27} />
+          </div>
+
           <div>
             <strong>Crop Health Workspace</strong>
             <p>Welcome to TerraSpectra</p>
@@ -854,7 +1229,10 @@ function App() {
               <span>Search</span>
             </button>
 
-            <button className="icon-button" aria-label="Notifications">
+            <button
+              className="icon-button"
+              aria-label="Notifications"
+            >
               <Bell size={24} />
             </button>
 
