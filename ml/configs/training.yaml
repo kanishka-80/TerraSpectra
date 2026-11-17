@@ -1,0 +1,30 @@
+# TerraSpectra — Initial 3D-CNN Training Configuration
+# Schema Version: 1.0.0
+# Author: Harsh (ML Engineering Lead)
+# Note: Initial conservative defaults calibrated for 4 GB VRAM (RTX 3050 Laptop GPU).
+# These values are NOT experimentally optimized yet.
+
+training:
+  tuned: false
+  batch_size: 16                      # Aligned with Khushi's create_torch_loader(batch_size=16) & 4 GB VRAM
+  learning_rate: 0.0003
+  optimizer: "AdamW"
+  weight_decay: 0.01
+  num_epochs: 30
+  loss_function: "CrossEntropyLoss"
+  random_seed: 42
+  num_workers: 0                      # Safe default on Windows PowerShell / 16 GB RAM
+
+hardware_and_runtime:
+  device_preference: "auto"           # Resolves to "cuda" if available else "cpu"
+  target_gpu: "NVIDIA GeForce RTX 3050 Laptop GPU"
+  vram_limit_gb: 4.0
+  system_ram_gb: 16.0
+  cpu_model: "Intel Core i5-11400H"
+  mixed_precision_amp: false          # Keep float32 initially for spectral numerical stability
+
+paths:
+  checkpoint_dir: "ml/artifacts/checkpoints"
+  logging_dir: "ml/artifacts/logs"
+  report_dir: "ml/artifacts/reports"
+  save_best_only: true

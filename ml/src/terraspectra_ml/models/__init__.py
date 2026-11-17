@@ -1,12 +1,12 @@
 """TerraSpectra ML Models Package.
 
-Exports the validated input contract interfaces. Neural network modules
-(cnn3d, vit_spectral, hybrid_model) are scheduled for Week 2 implementation.
+Exports validated input contract and DataLoader batch adaptation utilities.
 """
 
 from terraspectra_ml.models.input_contract import (
     InputContractError,
     InputContractSpec,
+    adapt_4d_patch_batch_to_5d,
     resolve_target_device,
     validate_model_input,
 )
@@ -14,6 +14,7 @@ from terraspectra_ml.models.input_contract import (
 __all__ = [
     "InputContractError",
     "InputContractSpec",
+    "adapt_4d_patch_batch_to_5d",
     "resolve_target_device",
     "validate_model_input",
 ]

@@ -256,3 +256,23 @@
 - **Stage 6 — ViT Preparation:**
   - *Tasks:* Verify 3D-CNN pooled token output `[B, 25, 128]` and prepare `vit_spectral.py` interface only after standalone 3D-CNN baseline is validated.
   - *Acceptance Criteria:* Clean tensor handoff verified before hybrid assembly.
+
+## Day 8 (Week 2, Day 1) — Finalize 3D-CNN Architecture and Data Contract
+**Date:** Wednesday, 18 November 2026  
+**Engineer:** Harsh (ML Engineering Lead)  
+**Collaborator:** Khushi (ML & Data Engineering)  
+**Branch:** `Harsh`
+
+### 1. Objectives & Cross-Branch Inspection
+- Inspected `origin/khushi` (`patch_dataset.py`, `loaders.py`, `tensor-contract.md`, `label-audit.md`) to align the 3D-CNN input contract with Khushi's actual DataLoader output.
+- Calibrated model and training configs for the 4 GB VRAM NVIDIA GeForce RTX 3050 Laptop GPU.
+- Finalized `ml/configs/model_config.yaml`, `ml/configs/training.yaml`, `ml/src/terraspectra_ml/models/input_contract.py`, and `docs/ml/week2-model-decisions.md`.
+
+### 2. Key Technical Findings & Decisions
+- **4D-to-5D Interface Bridge:** Verified Khushi's `PatchDataset` and `create_torch_loader` emit 4D batches `[B, D, H, W]` with default `patch_size=9` and `batch_size=16`. Implemented `adapt_4d_patch_batch_to_5d()` in `input_contract.py` to promote batches to `[B, 1, D, H, W]` and updated default spatial patch size to `9 x 9`.
+- **4 GB VRAM Calibration:** Set conservative `batch_size=16`, `9x9` spatial patch window, and `[8, 16, 32]` channels in `model_config.yaml` and `training.yaml`.
+- **Label Blocker Verified:** Confirmed via `origin/khushi:docs/dataset/label-audit.md` that verified labels and final band count `D` remain pending.
+
+### 3. Validation & Tests Executed
+- Validated YAML syntax for `model_config.yaml` and `training.yaml`.
+- Executed updated ML test suite (`test_input_contract.py` + `test_tensor_shapes.py`) covering `9x9` defaults and `adapt_4d_patch_batch_to_5d()`.

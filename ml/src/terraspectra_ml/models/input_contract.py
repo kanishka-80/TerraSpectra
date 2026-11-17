@@ -1,8 +1,8 @@
-"""Input contract validation for TerraSpectra 3D-CNN and Hybrid models.
+"""Input contract validation and DataLoader batch adaptation for TerraSpectra 3D-CNN.
 
-Enforces the Day 2 5D tensor contract: [Batch, Channels, Depth, Height, Width]
-([B, C, D, H, W]) before passing data into neural network layers.
-Supports both NumPy arrays and PyTorch tensors with explicit dtype and device checks.
+Enforces the 5D tensor contract: [Batch, Channels, Depth, Height, Width]
+([B, C, D, H, W]) before passing data into 3D-CNN layers, and provides an
+explicit adapter for 4D [B, D, H, W] batches emitted by Khushi's PatchDataset/DataLoader.
 """
 
 from __future__ import annotations
@@ -31,29 +31,18 @@ class InputContractSpec:
     expected_channels: int = 1
     expected_depth: Optional[int] = None
     min_depth: int = 4
-    expected_height: Optional[int] = 13
-    expected_width: Optional[int] = 13
-    min_spatial_size: int = 3
+    expected_height: Optional[int] = 9
+    expected_width: Optional[int] = 9
+    min_spatial_size: int = 5
     require_odd_spatial: bool = True
     allowed_dtypes: Tuple[str, ...] = ("float32",)
     allow_nan: bool = False
     allow_inf: bool = False
-    expected_device: Optional[str] = None  # e.g., "cpu", "cuda", "cuda:0" (applies to torch.Tensor)
+    expected_device: Optional[str] = None
 
 
 def resolve_target_device(requested_device: str = "auto") -> str:
-    """Resolve explicit execution device string without silent fallbacks.
-
-    Args:
-        requested_device: One of "auto", "cpu", or "cuda" (or "cuda:<idx>").
-
-    Returns:
-        Resolved device identifier ("cpu" or "cuda...").
-
-    Raises:
-        InputContractError: If CUDA is explicitly requested when unavailable,
-            or if an invalid device string is provided.
-    """
+    """Resolve explicit execution device string without silent fallbacks."""
     normalized = requested_device.strip().lower()
     cuda_available = bool(HAS_TORCH and torch.cuda.is_available())
 
@@ -87,22 +76,38 @@ def _get_dtype_name(x: Any) -> str:
     )
 
 
+def adapt_4d_patch_batch_to_5d(
+    batch: Any,
+    spec: Optional[InputContractSpec] = None,
+) -> Any:
+    """Adapt a 4D DataLoader batch [B, D, H, W] into a validated 5D tensor [B, 1, D, H, W].
+
+    Bridges Khushi's PatchDataset/DataLoader output shape (samples, bands, height, width)
+    with the 3D-CNN volumetric input contract (Batch, Channels=1, Depth, Height, Width).
+    """
+    is_tensor = _is_torch_tensor(batch)
+    is_ndarray = isinstance(batch, np.ndarray)
+
+    if not (is_tensor or is_ndarray):
+        raise InputContractError(
+            f"Unsupported batch type '{type(batch).__name__}'. Expected numpy.ndarray or torch.Tensor."
+        )
+
+    if batch.ndim != 4:
+        raise InputContractError(
+            f"adapt_4d_patch_batch_to_5d expects a 4D batch [B, D, H, W], got {batch.ndim}D with shape {tuple(batch.shape)}."
+        )
+
+    adapted = batch.unsqueeze(1) if is_tensor else np.expand_dims(batch, axis=1)
+    validate_model_input(adapted, spec=spec)
+    return adapted
+
+
 def validate_model_input(
     x: Any,
     spec: Optional[InputContractSpec] = None,
 ) -> Tuple[int, int, int, int, int]:
-    """Validate a 5D hyperspectral input tensor against the TerraSpectra contract.
-
-    Args:
-        x: Input tensor (numpy.ndarray or torch.Tensor) of shape [B, C, D, H, W].
-        spec: Optional InputContractSpec override.
-
-    Returns:
-        Tuple of validated dimensions (B, C, D, H, W).
-
-    Raises:
-        InputContractError: If any dimensional, dtype, device, or numerical check fails.
-    """
+    """Validate a 5D hyperspectral input tensor against the TerraSpectra contract."""
     if spec is None:
         spec = InputContractSpec()
 
@@ -128,7 +133,7 @@ def validate_model_input(
             f"Input tensor cannot have zero or negative dimensions; got shape {(b, c, d, h, w)}."
         )
 
-    # 3. Channel check (C = 1 for volumetric hyperspectral scalar reflectance)
+    # 3. Channel check (C = 1)
     if spec.expected_channels is not None and c != spec.expected_channels:
         raise InputContractError(
             f"Expected channel dimension C={spec.expected_channels}, got C={c}."
@@ -169,7 +174,7 @@ def validate_model_input(
             f"Unsupported data type '{dtype_name}'. Allowed dtypes: {spec.allowed_dtypes}."
         )
 
-    # 7. Device check (explicit for PyTorch tensors; NumPy arrays are host-memory only)
+    # 7. Device check
     if spec.expected_device is not None:
         expected_dev = spec.expected_device.strip().lower()
         if is_tensor:

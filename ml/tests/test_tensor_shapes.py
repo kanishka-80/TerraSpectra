@@ -18,6 +18,7 @@ if str(SRC_DIR) not in sys.path:
 from terraspectra_ml.models import (
     InputContractError,
     InputContractSpec,
+    adapt_4d_patch_batch_to_5d,
     resolve_target_device,
     validate_model_input,
 )
@@ -28,48 +29,54 @@ class TestTensorShapesAndDevices(unittest.TestCase):
 
     def test_valid_5d_tensor_fixture(self) -> None:
         rng = np.random.default_rng(seed=42)
-        synthetic_patch = rng.uniform(0.0, 1.0, size=(16, 1, 128, 13, 13)).astype(np.float32)
+        synthetic_patch = rng.uniform(0.0, 1.0, size=(16, 1, 128, 9, 9)).astype(np.float32)
         b, c, d, h, w = validate_model_input(synthetic_patch)
-        self.assertEqual((b, c, d, h, w), (16, 1, 128, 13, 13))
+        self.assertEqual((b, c, d, h, w), (16, 1, 128, 9, 9))
+
+    def test_khushi_dataloader_4d_batch_adaptation(self) -> None:
+        rng = np.random.default_rng(seed=7)
+        loader_batch = rng.uniform(0.0, 1.0, size=(16, 103, 9, 9)).astype(np.float32)
+        adapted = adapt_4d_patch_batch_to_5d(loader_batch)
+        self.assertEqual(adapted.shape, (16, 1, 103, 9, 9))
 
     def test_variable_spectral_band_counts_accepted(self) -> None:
         for band_count in (32, 103, 200, 224):
-            tensor = np.ones((2, 1, band_count, 13, 13), dtype=np.float32)
+            tensor = np.ones((2, 1, band_count, 9, 9), dtype=np.float32)
             validated = validate_model_input(tensor)
             self.assertEqual(validated[2], band_count)
 
-    def test_4d_input_rejected(self) -> None:
-        tensor_4d = np.zeros((16, 128, 13, 13), dtype=np.float32)
+    def test_4d_input_rejected_by_strict_5d_validator(self) -> None:
+        tensor_4d = np.zeros((16, 128, 9, 9), dtype=np.float32)
         with self.assertRaisesRegex(InputContractError, "Expected 5D tensor"):
             validate_model_input(tensor_4d)
 
     def test_6d_input_rejected(self) -> None:
-        tensor_6d = np.zeros((2, 1, 1, 128, 13, 13), dtype=np.float32)
+        tensor_6d = np.zeros((2, 1, 1, 128, 9, 9), dtype=np.float32)
         with self.assertRaisesRegex(InputContractError, "Expected 5D tensor"):
             validate_model_input(tensor_6d)
 
     def test_empty_batch_or_spatial_dimension_rejected(self) -> None:
-        empty_batch = np.zeros((0, 1, 64, 13, 13), dtype=np.float32)
+        empty_batch = np.zeros((0, 1, 64, 9, 9), dtype=np.float32)
         with self.assertRaisesRegex(InputContractError, "zero or negative dimensions"):
             validate_model_input(empty_batch)
 
-        empty_depth = np.zeros((4, 1, 0, 13, 13), dtype=np.float32)
+        empty_depth = np.zeros((4, 1, 0, 9, 9), dtype=np.float32)
         with self.assertRaisesRegex(InputContractError, "zero or negative dimensions"):
             validate_model_input(empty_depth)
 
     def test_unsupported_dtypes_rejected(self) -> None:
         for bad_dtype in (np.float64, np.int32, np.uint8):
-            tensor = np.zeros((2, 1, 64, 13, 13), dtype=bad_dtype)
+            tensor = np.zeros((2, 1, 64, 9, 9), dtype=bad_dtype)
             with self.assertRaisesRegex(InputContractError, "Unsupported data type"):
                 validate_model_input(tensor)
 
     def test_nan_and_inf_rejected(self) -> None:
-        nan_tensor = np.zeros((2, 1, 64, 13, 13), dtype=np.float32)
-        nan_tensor[1, 0, 32, 6, 6] = np.nan
+        nan_tensor = np.zeros((2, 1, 64, 9, 9), dtype=np.float32)
+        nan_tensor[1, 0, 32, 4, 4] = np.nan
         with self.assertRaisesRegex(InputContractError, "contains NaN values"):
             validate_model_input(nan_tensor)
 
-        inf_tensor = np.zeros((2, 1, 64, 13, 13), dtype=np.float32)
+        inf_tensor = np.zeros((2, 1, 64, 9, 9), dtype=np.float32)
         inf_tensor[0, 0, 10, 1, 1] = -np.inf
         with self.assertRaisesRegex(InputContractError, "contains Infinite"):
             validate_model_input(inf_tensor)
@@ -82,11 +89,10 @@ class TestTensorShapesAndDevices(unittest.TestCase):
         with self.assertRaisesRegex(InputContractError, "Unsupported device specification"):
             resolve_target_device("tpu:0")
 
-        # NumPy host array validated against cpu succeeds, against cuda fails explicitly
-        host_arr = np.zeros((2, 1, 64, 13, 13), dtype=np.float32)
+        host_arr = np.zeros((2, 1, 64, 9, 9), dtype=np.float32)
         self.assertEqual(
             validate_model_input(host_arr, InputContractSpec(expected_device="cpu")),
-            (2, 1, 64, 13, 13),
+            (2, 1, 64, 9, 9),
         )
         with self.assertRaisesRegex(InputContractError, "host CPU memory"):
             validate_model_input(host_arr, InputContractSpec(expected_device="cuda"))
