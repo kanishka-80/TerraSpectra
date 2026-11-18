@@ -276,3 +276,21 @@
 ### 3. Validation & Tests Executed
 - Validated YAML syntax for `model_config.yaml` and `training.yaml`.
 - Executed updated ML test suite (`test_input_contract.py` + `test_tensor_shapes.py`) covering `9x9` defaults and `adapt_4d_patch_batch_to_5d()`.
+
+## Day 9 (Week 2, Day 2) — Implement Initial 3D-CNN Architecture in PyTorch
+**Date:** Thursday, 19 November 2026  
+**Engineer:** Harsh (ML Engineering Lead)  
+**Branch:** `Harsh`
+
+### 1. Objectives & Implementation Completed
+- Created isolated virtual environment `ml/.venv` and installed PyTorch `2.6.0+cu124` with verified CUDA support on `NVIDIA GeForce RTX 3050 6GB Laptop GPU`.
+- Implemented `Conv3DBlock`, `SpatialSpectral3DExtractor`, `ClassificationHead`, and `TerraSpectra3DCNN` in `ml/src/terraspectra_ml/models/cnn3d.py`.
+- Connected `validate_model_input` directly inside `TerraSpectra3DCNN.extract_features()` and exposed `extract_vit_tokens()` (`[B, 25, 128]`) for Week 3 ViT readiness.
+- Updated `ml/src/terraspectra_ml/models/__init__.py` and `docs/ml/3dcnn-architecture.md`.
+
+### 2. Automated Tests & GPU Smoke Test Executed
+- Created `ml/tests/test_cnn3d.py` covering YAML config loading, `[B, 1, D, 9, 9]` forward pass, 4D->5D DataLoader adapter integration, variable spectral bands (`32, 103, 200`), `[B, 128]` & `[B, 25, 128]` feature outputs, invalid input rejection, and CUDA forward-pass smoke test.
+- **Unit Test Command:** `python -m unittest discover -s ml/tests -v`
+  - **Actual Result:** `Ran 28 tests in 2.117s` — `OK` (7 tests in `test_cnn3d.py` + 12 in `test_input_contract.py` + 9 in `test_tensor_shapes.py`).
+- **CUDA Smoke Command:** `python -c "import sys; sys.path.insert(0, 'ml/src'); import torch; from terraspectra_ml.models import TerraSpectra3DCNN; ..."`
+  - **Actual Result:** `Smoke OK | Device: cuda | Params: 24682 | Output: (16, 2) | Peak VRAM: 34.24 MB` on `[16, 1, 128, 9, 9]` `float32` input.

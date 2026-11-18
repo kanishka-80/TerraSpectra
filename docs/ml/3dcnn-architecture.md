@@ -1,75 +1,56 @@
-# TerraSpectra — 3D-CNN Architecture Design Specification
+# TerraSpectra — Implemented 3D-CNN Architecture Specification (Day 9)
 
-**Version:** 1.0.0  
-**Date:** November 13, 2026  
-**Author:** Harsh (ML Engineering Lead)
-
----
-
-## 1. Architecture Overview
-The TerraSpectra 3D-CNN module serves as the joint spectral-spatial feature extractor at the front of the proposed **3D-CNN + Vision Transformer (ViT)** hybrid architecture. It ingests 5D hyperspectral patch tensors `[B, C, D, H, W]` and applies volumetric 3D convolutions across contiguous spectral bands (`D`) and local spatial neighborhoods (`H, W`).
+**Version:** 2.0.0  
+**Date:** November 19, 2026  
+**Author:** Harsh (ML Engineering Lead)  
+**Implementation Module:** `ml/src/terraspectra_ml/models/cnn3d.py`  
+**Status:** Standalone 3D-CNN PyTorch architecture implemented and forward-pass verified (Training loop and ViT encoder not yet implemented).
 
 ---
 
-## 2. Rationale for 3D-CNN over 2D-CNN
-- **2D-CNN Limitation:** A 2D convolution applies kernels only across `(H, W)` while summing across all `D` spectral channels in the very first layer. This collapses local inter-band continuity and obscures narrow diagnostic absorption gradients (such as red-edge shifts at 690–730 nm and moisture dips at 970/1200 nm).
-- **3D-CNN Advantage:** A 3D convolution slides a kernel `(k_d, k_h, k_w)` across both spectral depth `D` and spatial dimensions `(H, W)`, preserving localized spectral derivatives alongside spatial canopy texture.
+## 1. End-to-End Architecture Flow
 
----
-
-## 3. Input Tensor Convention
-Per `docs/ml/data-model-contract.md` and `ml/src/terraspectra_ml/models/input_contract.py`:
-- **Shape:** `[B, C, D, H, W]`
-  - `B`: Batch size (`B >= 1`, default `32`)
-  - `C`: Input channels (`C = 1`, representing scalar reflectance volume)
-  - `D`: Spectral depth (`D >= 4`, symbolic until target sensor band count is locked)
-  - `H, W`: Odd spatial patch window (default `13 x 13` centered on target pixel)
-- **Data Type:** `float32`, free of `NaN` and `Inf` values.
-
----
-
-## 4. Proposed Convolution Block Design & Tensor Transformations
-
-Because spatial patches are compact (`H = W = 13`) while spectral depth is large (`D ~ 100-224`), the 3D-CNN strides along the spectral axis (`s_d = 2`) in early blocks while preserving spatial resolution (`s_h = s_w = 1`).
-
-| Stage | Input Shape | Operation | Output Shape (Symbolic) | Purpose |
-| :--- | :--- | :--- | :--- | :--- |
-| **Input** | `[B, 1, D, H, W]` | `validate_model_input` | `[B, 1, D, H, W]` | Enforces 5D shape, `C=1`, odd `H,W`, `float32`, no `NaN`/`Inf`. |
-| **Conv Block 1** | `[B, 1, D, H, W]` | `Conv3d(1->8, k=(7,3,3), s=(2,1,1), p=(3,1,1))` + `BatchNorm3d(8)` + `GELU` | `[B, 8, D1, H, W]` (`D1 = floor((D-1)/2)+1`) | Captures broad low-level spectral slopes while preserving `H x W`. |
-| **Conv Block 2** | `[B, 8, D1, H, W]` | `Conv3d(8->16, k=(5,3,3), s=(2,1,1), p=(2,1,1))` + `BatchNorm3d(16)` + `GELU` | `[B, 16, D2, H, W]` (`D2 = floor((D1-1)/2)+1`) | Extracts mid-level compound absorption valleys; halves spectral depth again. |
-| **Conv Block 3** | `[B, 16, D2, H, W]` | `Conv3d(16->32, k=(3,3,3), s=(1,1,1), p=(1,0,0))` + `BatchNorm3d(32)` + `GELU` + `Dropout3d(0.1)` | `[B, 32, D2, H-2, W-2]` | Joint spectral-spatial refinement; unpadded spatial `3x3` reduces border padding influence (`13 -> 11`). |
-| **Adaptive Pool** | `[B, 32, D2, H-2, W-2]` | `AdaptiveAvgPool3d((D_p, H_p, W_p))` | `[B, 32, D_p, H_p, W_p]` | Decouples feature shape from variable sensor band count `D`. |
-| **Aggregation** | `[B, 32, D_p, H_p, W_p]` | Flatten + `Linear(32*D_p*H_p*W_p -> F)` (`F = 128`) | `[B, F]` | Compact spectral-spatial embedding for classification or ViT projection. |
-
----
-
-## 5. Pooling Strategy Justification
-- **Avoiding Early Spatial Pooling:** Applying `MaxPool3d` on a `13 x 13` spatial patch would rapidly collapse spatial context. Instead, spectral downsampling is handled via strided 3D convolutions (`s_d = 2`), and final dimension standardization uses `AdaptiveAvgPool3d`.
-- **Sensor Agnosticism:** `AdaptiveAvgPool3d((D_p, H_p, W_p))` guarantees that whether the input cube has `D = 103`, `200`, or `224` bands, the downstream feature representation has an exact, deterministic shape.
-
----
-
-## 6. Classification Head & Future ViT Connection
-
-    Hyperspectral Input [B, 1, D, H, W]
+    Hyperspectral Input [B, 1, D, 9, 9] (float32)
            |
            v
-    3D-CNN Convolution Blocks 1 -> 2 -> 3  ([B, 32, D2, H-2, W-2])
-           |
-           +---> [Standalone 3D-CNN Baseline Path]
-           |     AdaptiveAvgPool3d((1, 1, 1)) -> Flatten -> Linear(32 -> 128) -> [B, 128]
-           |
-           +---> [Hybrid 3D-CNN + ViT Path (Week 2)]
-                 AdaptiveAvgPool3d((D_p, H_p, W_p)) -> Token Projection -> [B, N_tokens, E=128]
-                 -> ViT Encoder -> Pooled Embedding [B, 128]
+    Input Contract Validation (validate_model_input)
            |
            v
-    Classification Head: Dropout(0.2) -> Linear(128 -> K) -> Logits [B, K] -> Softmax [B, K]
+    3D Convolution Blocks (Conv3DBlock x 3: 1 -> 8 -> 16 -> 32)
+           |
+           v
+    Spatial-Spectral Feature Extraction (AdaptiveAvgPool3d -> Linear [B, 128])
+           |
+           v
+    Classification Head (Dropout(0.2) -> Linear(128, K))
+           |
+           v
+    Output Logits [B, K] (raw unnormalized scores)
 
 ---
 
-## 7. Memory, Computational & Pending Considerations
-- **VRAM Budget (6 GB RTX 3050):** Base channel progression `[8, 16, 32]` with spectral stride `2` keeps 5D activation maps compact (~15-30 MB per batch of 32 patches).
-- **Pending Decisions:**
-  1. Final sensor band count `D` once a true hyperspectral dataset is mounted.
-  2. Choice between spatial tokenization vs. spectral-spatial tokenization for the Week 2 ViT module.
+## 2. Implemented Components (`cnn3d.py`)
+
+### 2.1 Reusable Convolution Block (`Conv3DBlock`)
+Each block encapsulates `nn.Conv3d` -> `nn.BatchNorm3d` -> `nn.GELU` -> `nn.Dropout3d(0.1)` configured directly from `ml/configs/model_config.yaml`:
+
+| Block | Channels (`in -> out`) | Kernel `(k_d, k_h, k_w)` | Stride `(s_d, s_h, s_w)` | Padding `(p_d, p_h, p_w)` | Output Tensor Shape (Symbolic) |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **Input** | `1` | — | — | — | `[B, 1, D, 9, 9]` |
+| **Block 1** | `1 -> 8` | `(7, 3, 3)` | `(2, 1, 1)` | `(3, 1, 1)` | `[B, 8, ceil(D/2), 9, 9]` |
+| **Block 2** | `8 -> 16` | `(5, 3, 3)` | `(2, 1, 1)` | `(2, 1, 1)` | `[B, 16, ceil(D/4), 9, 9]` |
+| **Block 3** | `16 -> 32` | `(3, 3, 3)` | `(1, 1, 1)` | `(1, 0, 0)` | `[B, 32, ceil(D/4), 7, 7]` |
+
+### 2.2 Feature Extractor (`SpatialSpectral3DExtractor`)
+- **Standalone Classification Path (`forward`):** Applies `AdaptiveAvgPool3d((1, 1, 1))` to collapse variable spectral depth `D_3` and `7 x 7` spatial extent into `[B, 32]`, followed by `Linear(32, 128)` + `GELU` to emit `[B, 128]`.
+- **Week 3 ViT Interface (`extract_vit_tokens`):** Exposes `AdaptiveAvgPool3d((4, 5, 5))` reshaped into `[B, 25, 128]` spatial-spectral tokens so Week 3 ViT integration can reuse the exact same convolutional weights without refactoring.
+
+### 2.3 Classification Head (`ClassificationHead`)
+- `nn.Dropout(0.2)` -> `nn.Linear(128, K)` where `K` is bound dynamically from `ml/configs/classes.yaml` (provisional `K = 2`).
+- Returns raw unnormalized logits `[B, K]`. Softmax is intentionally omitted from `forward()` (provided separately via `predict_probabilities()`) so training uses `nn.CrossEntropyLoss` directly.
+
+---
+
+## 3. Known Limitations & Unresolved Decisions
+- **Provisional Class Count (`K = 2`):** Bound from `ml/configs/classes.yaml` (`confirmed: false`); will automatically adapt when Khushi locks the verified ground-truth label schema.
+- **Unimplemented Downstream Stages:** Training loop (`Day 10`), real hyperspectral dataset training, and Vision Transformer encoder (`Week 3`) are not part of this implementation.
