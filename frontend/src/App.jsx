@@ -1,12 +1,16 @@
+
 import { useState, useRef, useEffect } from "react";
 import {
   LayoutDashboard, ScanLine, Sprout, History, Settings,
   Bell, Search, Leaf, Upload, ImagePlus, ArrowRight,
-  Activity, Menu, X, ShieldCheck, Camera, Video, Square
+  Activity, Menu, X, ShieldCheck, Camera, Video, Square,
+  Info, Sparkles, CheckCircle2, ChevronDown, ChevronRight,
+  Play, Eye
 } from "lucide-react";
 import "./App.css";
 
 const navItems = [
+  { name: "About", icon: Info },
   { name: "Overview", icon: LayoutDashboard },
   { name: "Crop Scanner", icon: ScanLine },
   { name: "Disease Analysis", icon: Sprout },
@@ -18,7 +22,7 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
 
 function App() {
-  const [activePage, setActivePage] = useState("Crop Scanner");
+  const [activePage, setActivePage] = useState("About");
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const [selectedMedia, setSelectedMedia] = useState(null);
@@ -63,7 +67,7 @@ function App() {
   }, []);
 
   // Add one or more images, or select a video.
-  const setMedia = (file, type, navigateToOverview = true) => {
+  const setMedia = (file, type, navigateToOverview = false) => {
     const previewURL = URL.createObjectURL(file);
 
     if (type === "image") {
@@ -98,7 +102,7 @@ function App() {
       setVideoQuality(null);
     }
 
-    if (navigateToOverview) {
+    if (navigateToOverview && activePage !== "About") {
       setActivePage("Overview");
       setMobileOpen(false);
     }
@@ -141,8 +145,18 @@ function App() {
       setSelectedMedia(newImages[0].url);
       setSelectedFile(newImages[0].file);
       setMediaType("image");
-      setActivePage("Overview");
-      setMobileOpen(false);
+
+      if (activePage !== "About") {
+        setActivePage("Overview");
+        setMobileOpen(false);
+      } else {
+        setTimeout(() => {
+          const section = document.getElementById("section-upload");
+          if (section) {
+            section.scrollIntoView({ behavior: "smooth" });
+          }
+        }, 100);
+      }
     }
 
     event.target.value = "";
@@ -195,6 +209,15 @@ function App() {
 
     setMedia(file, "video");
     inspectVideoQuality(file);
+
+    if (activePage === "About") {
+      setTimeout(() => {
+        const section = document.getElementById("section-upload");
+        if (section) {
+          section.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
+    }
 
     event.target.value = "";
   };
@@ -486,7 +509,7 @@ function App() {
     setRecording(false);
     setCameraOpen(false);
 
-    if (cameraMode === "photo" && selectedImages.length > 0) {
+    if (activePage !== "About" && cameraMode === "photo" && selectedImages.length > 0) {
       setActivePage("Overview");
     }
   };
@@ -943,32 +966,7 @@ function App() {
           </label>
         </div>
 
-        <div className="upload-actions">
-          <label className="primary-button">
-            <Upload size={18} />
-            Browse Image
-
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              multiple
-              onChange={handleImage}
-              hidden
-            />
-          </label>
-
-          <label className="secondary-button">
-            <Video size={18} />
-            Browse Video
-
-            <input
-              type="file"
-              accept="video/mp4,video/quicktime,video/webm,video/*"
-              onChange={handleVideo}
-              hidden
-            />
-          </label>
-        </div>
+        {/* Duplicate Browse Image and Browse Video buttons removed. */}
 
         <div className="upload-actions camera-options">
           <button
@@ -998,6 +996,922 @@ function App() {
         </span>
       </section>
     </>
+  );
+
+  // Scroll helper to smoothly scroll to any feature section
+  const scrollToSection = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  // About page (Full-screen agricultural hero inspired by FARMLAND INDIA with exact 1st About, 2nd Upload Data, 3rd Remaining order)
+  const renderAbout = () => (
+    <div className="about-container">
+      {/* Floating Side Dot Navigation */}
+      <nav className="about-side-nav" aria-label="Feature navigation">
+        <button
+          type="button"
+          className="side-nav-dot"
+          onClick={() => scrollToSection("about-hero")}
+          title="Top: Hero Banner"
+        >
+          <span className="dot-label">Top: Hero</span>
+        </button>
+        <button
+          type="button"
+          className="side-nav-dot"
+          onClick={() => scrollToSection("section-about")}
+          title="01: About TerraSpectra"
+        >
+          <span className="dot-label">01. About</span>
+        </button>
+        <button
+          type="button"
+          className="side-nav-dot"
+          onClick={() => scrollToSection("section-upload")}
+          title="02: Upload Data (Scanner)"
+        >
+          <span className="dot-label">02. Upload Data</span>
+        </button>
+        <button
+          type="button"
+          className="side-nav-dot"
+          onClick={() => scrollToSection("section-ai")}
+          title="03: AI Disease Detection"
+        >
+          <span className="dot-label">03. AI Detection</span>
+        </button>
+        <button
+          type="button"
+          className="side-nav-dot"
+          onClick={() => scrollToSection("section-insights")}
+          title="04: Plant Health Insights"
+        >
+          <span className="dot-label">04. Health Insights</span>
+        </button>
+        <button
+          type="button"
+          className="side-nav-dot"
+          onClick={() => scrollToSection("section-history")}
+          title="05: Scan History"
+        >
+          <span className="dot-label">05. Scan History</span>
+        </button>
+      </nav>
+
+      {/* TOP PART: FARMLAND INDIA-INSPIRED HERO & HEADER */}
+      <section className="about-hero about-snap-section" id="about-hero">
+        <div className="about-hero-overlay" />
+
+        {/* Farmland India Style Top Navigation Bar */}
+        <header className="about-topbar">
+          <div className="about-brand">
+            <div className="about-brand-logo">
+              <Leaf size={22} />
+            </div>
+            <span className="about-brand-name">
+              TERRASPECTRA <span className="about-brand-tag">RICE AI</span>
+            </span>
+          </div>
+
+          <nav className="about-top-links">
+            <button type="button" onClick={() => scrollToSection("section-about")}>
+              About
+            </button>
+            <button type="button" onClick={() => scrollToSection("section-upload")}>
+              Upload Data
+            </button>
+            <button type="button" onClick={() => scrollToSection("section-ai")}>
+              AI Detection
+            </button>
+            <button type="button" onClick={() => scrollToSection("section-insights")}>
+              Health Advisory
+            </button>
+            <button type="button" onClick={() => scrollToSection("section-history")}>
+              History
+            </button>
+          </nav>
+
+          <div className="about-topbar-actions">
+            <button
+              type="button"
+              className="about-primary-btn"
+              onClick={() => openCamera("photo")}
+            >
+              Scan Plant Live
+            </button>
+          </div>
+        </header>
+
+        {/* Hero Content Area */}
+        <div className="about-hero-content">
+          <div className="hero-badge">
+            <Sparkles size={14} />
+            <span>INDIA'S AI-POWERED RICE CROP MONITORING</span>
+          </div>
+
+          <h1 className="hero-title">
+            Smarter <span className="hero-highlight">Crop Monitoring</span> with AI
+          </h1>
+
+          <p className="hero-description">
+            Discover a smarter way to monitor your crops. Upload rice plant images, scan leaves,
+            or record videos to check plant health using AI-powered technology.
+          </p>
+
+          {/* Interactive Search / Action Bar (Farmland India Style) */}
+          <div className="hero-action-box">
+            <div className="hero-tabs">
+              <button
+                type="button"
+                className="hero-tab active"
+                onClick={() => scrollToSection("section-about")}
+              >
+                1. ABOUT TERRASPECTRA
+              </button>
+              <button
+                type="button"
+                className="hero-tab"
+                onClick={() => scrollToSection("section-upload")}
+              >
+                2. UPLOAD DATA
+              </button>
+              <button
+                type="button"
+                className="hero-tab"
+                onClick={() => scrollToSection("section-ai")}
+              >
+                3. AI DISEASE DETECTION
+              </button>
+            </div>
+
+            <div className="hero-interactive-bar">
+              <div className="hero-crop-selector">
+                <Leaf size={18} className="hero-leaf-icon" />
+                <span>Rice Plant (Oryza sativa)</span>
+              </div>
+              <div className="hero-bar-divider" />
+              <div className="hero-bar-info">
+                <span>Upload plant images, scan live leaves, or record crop video...</span>
+              </div>
+              <button
+                type="button"
+                className="hero-cta-button"
+                onClick={() => scrollToSection("section-upload")}
+              >
+                Start Uploading <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Feature Category Pills */}
+          <div className="hero-pills">
+            <button
+              type="button"
+              className="hero-pill"
+              onClick={() => scrollToSection("section-about")}
+            >
+              📖 01. About TerraSpectra
+            </button>
+            <button
+              type="button"
+              className="hero-pill"
+              onClick={() => scrollToSection("section-upload")}
+            >
+              📤 02. Upload Plant Data
+            </button>
+            <button
+              type="button"
+              className="hero-pill"
+              onClick={() => openCamera("photo")}
+            >
+              📷 Live Camera Scan
+            </button>
+            <button
+              type="button"
+              className="hero-pill"
+              onClick={() => scrollToSection("section-ai")}
+            >
+              🤖 03. AI Disease Detection
+            </button>
+            <button
+              type="button"
+              className="hero-pill"
+              onClick={() => scrollToSection("section-insights")}
+            >
+              🌱 04. Health Advisory
+            </button>
+            <button
+              type="button"
+              className="hero-pill"
+              onClick={() => scrollToSection("section-history")}
+            >
+              📊 05. Scan History
+            </button>
+          </div>
+
+          {/* Scroll Down Prompt to 1st Section: About */}
+          <button
+            type="button"
+            className="scroll-down-indicator"
+            onClick={() => scrollToSection("section-about")}
+          >
+            <span>Scroll down to 1st: About Section</span>
+            <ChevronDown size={18} className="bounce-arrow" />
+          </button>
+        </div>
+      </section>
+
+      {/* ========================================================
+          1ST: ABOUT TERRASPECTRA SECTION
+          ======================================================== */}
+      <section className="about-feature-section about-snap-section bg-light" id="section-about">
+        <div className="about-story-container">
+          <div className="section-header-centered">
+            <div className="feature-step-pill">1ST SECTION · PROJECT INTRODUCTION</div>
+            <h2>About TerraSpectra</h2>
+            <p className="subtitle">
+              A smart crop monitoring application designed to help farmers and agricultural researchers
+              protect rice yields with artificial intelligence.
+            </p>
+          </div>
+
+          <div className="about-main-card">
+            <div className="about-card-banner">
+              <div className="stat-icon leaf-bg">
+                <Leaf size={32} />
+              </div>
+              <div>
+                <h3>What is TerraSpectra?</h3>
+                <p>Simple, accessible crop health diagnostics explained for everyone.</p>
+              </div>
+            </div>
+
+            <div className="about-story-body">
+              <p className="lead-paragraph">
+                <strong>TerraSpectra</strong> is a smart crop monitoring application that helps users check
+                the health of their plants. It uses image scanning and AI-based technology to help identify
+                possible crop diseases and plant health problems before they cause severe damage.
+              </p>
+              <p>
+                Users can <strong>upload plant images</strong>, <strong>upload crop videos</strong>, or
+                <strong> scan plants directly using their device camera</strong>. Our goal is to make crop
+                monitoring easier and help users understand when their plants need immediate agricultural attention.
+              </p>
+            </div>
+
+            <div className="about-pillars-grid">
+              <div className="about-pillar-item">
+                <div className="pillar-icon">🌾</div>
+                <h4>Focused on Rice Plants</h4>
+                <p>
+                  Built specifically around rice plant datasets: evaluating healthy paddy fields,
+                  rice leaf lesions, stem sheaths, and vegetative canopies.
+                </p>
+              </div>
+              <div className="about-pillar-item">
+                <div className="pillar-icon">📷</div>
+                <h4>Multiple Ways to Inspect</h4>
+                <p>
+                  From single leaf snapshots to batch multi-image uploads and wide-angle field videos,
+                  TerraSpectra gives you flexible inspection tools.
+                </p>
+              </div>
+              <div className="about-pillar-item">
+                <div className="pillar-icon">💡</div>
+                <h4>Actionable Advice</h4>
+                <p>
+                  Converts technical machine learning detection into simple, practical steps that any farmer
+                  or field agronomist can execute easily.
+                </p>
+              </div>
+            </div>
+
+            <div className="about-cta-footer">
+              <div className="about-badge-tag">
+                <ShieldCheck size={18} />
+                <span>Dataset: Authentic Agricultural Rice Plant Dataset</span>
+              </div>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => scrollToSection("section-upload")}
+              >
+                Proceed to 2nd: Upload Data <ArrowRight size={17} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================
+          2ND: UPLOAD DATA (INTERACTIVE WORKSPACE ON THE PRESENT SITE)
+          ======================================================== */}
+      <section className="about-feature-section about-snap-section bg-white" id="section-upload">
+        <div className="about-story-container">
+          <div className="section-header-centered">
+            <div className="feature-step-pill">2ND SECTION · CROP DATA INGESTION</div>
+            <h2>Upload & Capture Crop Data</h2>
+            <p className="subtitle">
+              Collect and inspect your rice plant samples directly on this page using the 4 main tools.
+            </p>
+          </div>
+
+          {/* ACTIVE UPLOADED MEDIA PREVIEW (WORKS DIRECTLY ON THIS PRESENT PAGE) */}
+          {selectedMedia ? (
+            <div className="landing-uploaded-workspace">
+              <div className="uploaded-heading">
+                <div>
+                  <p className="eyebrow">UPLOADED TO PRESENT SITE</p>
+                  <h3>
+                    {mediaType === "video"
+                      ? "Rice Crop Video Ready for Analysis"
+                      : `${selectedImages.length} Rice Leaf Image${
+                          selectedImages.length === 1 ? "" : "s"
+                        } Ready for Analysis`}
+                  </h3>
+                  <p>
+                    {mediaType === "video"
+                      ? "Your video has been loaded directly on the present page."
+                      : "Review your selected rice plant images below."}
+                  </p>
+                </div>
+                <span className="development-tag">
+                  {mediaType === "video" ? "Video Loaded" : "Images Loaded"}
+                </span>
+              </div>
+
+              <div className="preview-container">
+                {mediaType === "video" ? (
+                  <video
+                    src={selectedMedia}
+                    controls
+                    playsInline
+                    className="overview-preview media-video-preview"
+                  />
+                ) : (
+                  <div className="plant-image-gallery">
+                    {selectedImages.map((image, index) => (
+                      <div className="plant-image-item" key={image.id}>
+                        <img
+                          src={image.url}
+                          alt={`Rice leaf sample ${index + 1}`}
+                        />
+                        <span>Sample {index + 1}</span>
+                        <button
+                          type="button"
+                          className="remove-image-button"
+                          onClick={() => removeImage(image.id)}
+                          aria-label={`Remove image ${index + 1}`}
+                        >
+                          <X size={15} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="file-information">
+                {mediaType === "video" ? (
+                  <Video size={20} />
+                ) : (
+                  <Upload size={20} />
+                )}
+                <div>
+                  <strong>
+                    {mediaType === "video"
+                      ? selectedFile?.name
+                      : `${selectedImages.length} image(s) selected`}
+                  </strong>
+                  <span>
+                    {mediaType === "video"
+                      ? `${(selectedFile?.size / (1024 * 1024)).toFixed(2)} MB`
+                      : `${(
+                          selectedImages.reduce(
+                            (total, image) => total + image.file.size,
+                            0
+                          ) /
+                          (1024 * 1024)
+                        ).toFixed(2)} MB total`}
+                  </span>
+                </div>
+              </div>
+
+              {mediaType === "video" && videoQuality && (
+                <div
+                  className={`video-quality-notice ${
+                    videoQuality.lowQuality
+                      ? "quality-warning"
+                      : "quality-good"
+                  }`}
+                >
+                  <strong>
+                    {videoQuality.width} × {videoQuality.height} video
+                    {videoQuality.lowQuality
+                      ? " — Low resolution detected"
+                      : " — Resolution looks suitable"}
+                  </strong>
+                  <p>
+                    {videoQuality.lowQuality
+                      ? "This video has low resolution. You can upscale its dimensions to at least 720p directly in your browser."
+                      : "Keep the plant in focus and use good lighting for the best analysis."}
+                  </p>
+                  {videoQuality.lowQuality && (
+                    <button
+                      className="secondary-button"
+                      onClick={enhanceVideo}
+                      disabled={enhancingVideo}
+                      type="button"
+                    >
+                      {enhancingVideo
+                        ? "Upscaling video..."
+                        : "Upscale Video to 720p"}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div className="upload-actions">
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={() =>
+                    alert(
+                      `${
+                        mediaType === "video"
+                          ? "Video"
+                          : `${selectedImages.length} image(s)`
+                      } ready! AI disease detection model will be integrated by the ML team.`
+                    )
+                  }
+                >
+                  <Activity size={18} />
+                  Analyse {mediaType === "video" ? "Video" : "Images"}
+                </button>
+
+                {mediaType === "image" ? (
+                  <>
+                    <label className="secondary-button upload-btn-label">
+                      <ImagePlus size={16} />
+                      <span>Add More Images</span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        multiple
+                        onChange={handleImage}
+                        hidden
+                      />
+                    </label>
+
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={() => openCamera("photo")}
+                    >
+                      <Camera size={16} />
+                      Scan with Camera
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <label className="secondary-button upload-btn-label">
+                      <Video size={16} />
+                      <span>Choose Another Video</span>
+                      <input
+                        type="file"
+                        accept="video/mp4,video/quicktime,video/webm,video/*"
+                        onChange={handleVideo}
+                        hidden
+                      />
+                    </label>
+
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={() => openCamera("record")}
+                    >
+                      <Video size={16} />
+                      Record Video
+                    </button>
+                  </>
+                )}
+
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={removeMedia}
+                >
+                  Remove All
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* 4 INTERACTIVE UPLOAD ACTIONS (WORKING ON PRESENT PAGE) */
+            <div className="upload-methods-grid">
+              {/* Card 1: Choose Plant Images */}
+              <div className="upload-method-card">
+                <div className="method-icon-box">
+                  <ImagePlus size={30} />
+                </div>
+                <span className="method-pill-badge">Multi-Image Batch</span>
+                <h3>Choose Plant Images</h3>
+                <p>
+                  Select multiple plant photos at once. Compare different
+                  leaf angles, upper blades, and lower stem sheaths.
+                </p>
+                <ul className="method-specs-list">
+                  <li>• Accepts JPG, JPEG, PNG, and WebP</li>
+                  <li>• Up to 10 MB per individual image</li>
+                  <li>• Instant preview directly on this page</li>
+                </ul>
+                <label className="primary-button upload-btn-label">
+                  <ImagePlus size={16} />
+                  <span>Choose Plant Images</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    multiple
+                    onChange={handleImage}
+                    hidden
+                  />
+                </label>
+              </div>
+
+              {/* Card 2: Choose a Video */}
+              <div className="upload-method-card">
+                <div className="method-icon-box">
+                  <Video size={30} />
+                </div>
+                <span className="method-pill-badge">Field Video File</span>
+                <h3>Choose a Video</h3>
+                <p>
+                  Upload recorded field footage to survey entire crop rows, canopy movement, and
+                  detect localized disease patches.
+                </p>
+                <ul className="method-specs-list">
+                  <li>• Supports MP4, MOV, and WebM formats</li>
+                  <li>• Generous file size limit up to 100 MB</li>
+                  <li>• Client-side 720p HD video upscaling tool</li>
+                </ul>
+                <label className="secondary-button upload-btn-label">
+                  <Video size={16} />
+                  <span>Choose a Video</span>
+                  <input
+                    type="file"
+                    accept="video/mp4,video/quicktime,video/webm,video/*"
+                    onChange={handleVideo}
+                    hidden
+                  />
+                </label>
+              </div>
+
+              {/* Card 3: Scan Plant Live */}
+              <div className="upload-method-card highlight-card">
+                <div className="method-icon-box highlight-icon">
+                  <Camera size={30} />
+                </div>
+                <span className="method-pill-badge active-tag">Tested & Ready</span>
+                <h3>Scan Plant Live</h3>
+                <p>
+                  Directly open your device camera to snap photos of suspicious rice leaves on the spot.
+                  Opens right over this page.
+                </p>
+                <ul className="method-specs-list">
+                  <li>• Fast camera viewfinder with daylight focus</li>
+                  <li>• In-browser camera capture without extra apps</li>
+                  <li>• Take multiple photos in one active session</li>
+                </ul>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => openCamera("photo")}
+                >
+                  <Camera size={16} />
+                  Scan Plant Live
+                </button>
+              </div>
+
+              {/* Card 4: Record Video */}
+              <div className="upload-method-card">
+                <div className="method-icon-box">
+                  <Video size={30} />
+                </div>
+                <span className="method-pill-badge">Live Cam Recording</span>
+                <h3>Record Video</h3>
+                <p>
+                  Launch your camera in recording mode to capture real-time video walks through
+                  your rice paddy, saving the video right here.
+                </p>
+                <ul className="method-specs-list">
+                  <li>• Real-time webcam and mobile camera recording</li>
+                  <li>• Built-in timer and safe stop-and-save logic</li>
+                  <li>• Preview video right on this page</li>
+                </ul>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => openCamera("record")}
+                >
+                  <Video size={16} />
+                  Record Video
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="upload-footer-actions">
+            <button
+              type="button"
+              className="feature-next-btn"
+              onClick={() => scrollToSection("section-ai")}
+            >
+              Continue to Remaining Things: AI Disease Detection <ChevronDown size={16} />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================
+          3RD: REMAINING THINGS (AI DETECTION, INSIGHTS, HISTORY)
+          ======================================================== */}
+      
+      {/* 3A: AI DISEASE DETECTION */}
+      <section className="about-feature-section about-snap-section bg-light" id="section-ai">
+        <div className="feature-section-inner reverse">
+          <div className="feature-visual-col">
+            <div className="visual-card ai-mock-card">
+              <div className="ai-mock-header">
+                <div className="ai-status-indicator">
+                  <Activity size={18} />
+                  <span>AI Detection Prototype</span>
+                </div>
+                <span className="badge-pending">Backend & ML Integration</span>
+              </div>
+              <div className="ai-prediction-box">
+                <div className="prediction-label">Identified Rice Disease Pattern:</div>
+                <div className="prediction-name">Rice Blast (Magnaporthe oryzae)</div>
+                <div className="prediction-meter-wrapper">
+                  <div className="meter-label-row">
+                    <span>Model Confidence</span>
+                    <strong>94.2%</strong>
+                  </div>
+                  <div className="prediction-meter-bar">
+                    <span className="meter-fill" style={{ width: "94.2%" }} />
+                  </div>
+                </div>
+                <div className="detection-target-tag">
+                  <ShieldCheck size={16} />
+                  <span>Dataset: Specialized Rice Leaf Disease Collection</span>
+                </div>
+              </div>
+              <div className="ai-mock-footer">
+                <p>Awaiting model deployment and API integration by team members</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="feature-text-col">
+            <div className="feature-step-pill">3RD SECTION (PART A) · AI DISEASE DETECTION</div>
+            <h2>AI-Powered Crop Disease Identification</h2>
+            <p className="feature-lead-text">
+              Utilize machine learning computer vision models trained specifically on rice crops to
+              distinguish between common fungal, bacterial, and viral infections.
+            </p>
+            <ul className="feature-points-list">
+              <li>
+                <CheckCircle2 size={18} className="check-icon" />
+                <span>Detection of Rice Blast, Bacterial Leaf Blight, and Brown Spot</span>
+              </li>
+              <li>
+                <CheckCircle2 size={18} className="check-icon" />
+                <span>Automated region highlight on affected rice foliage</span>
+              </li>
+              <li>
+                <CheckCircle2 size={18} className="check-icon" />
+                <span>Designed for high accuracy on authentic agricultural datasets</span>
+              </li>
+              <li>
+                <CheckCircle2 size={18} className="check-icon" />
+                <span>Frontend will connect smoothly to team backend API endpoints</span>
+              </li>
+            </ul>
+            <div className="feature-button-group">
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() =>
+                  alert("AI Disease Detection will be connected once the ML model and backend endpoints are integrated.")
+                }
+              >
+                <Activity size={18} />
+                Run AI Detection Test
+              </button>
+              <button
+                type="button"
+                className="feature-next-btn"
+                onClick={() => scrollToSection("section-insights")}
+              >
+                Next: Plant Health Insights <ChevronDown size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3B: PLANT HEALTH INSIGHTS & ADVISORY */}
+      <section className="about-feature-section about-snap-section bg-white" id="section-insights">
+        <div className="feature-section-inner">
+          <div className="feature-text-col">
+            <div className="feature-step-pill">3RD SECTION (PART B) · HEALTH INSIGHTS</div>
+            <h2>Actionable Plant Health Insights for Farmers</h2>
+            <p className="feature-lead-text">
+              Transform technical AI predictions into clear, understandable advisories so farmers
+              can take immediate preventive measures to save their harvests.
+            </p>
+            <ul className="feature-points-list">
+              <li>
+                <CheckCircle2 size={18} className="check-icon" />
+                <span>Plain-language symptom summaries and infection severity rankings</span>
+              </li>
+              <li>
+                <CheckCircle2 size={18} className="check-icon" />
+                <span>Water management guidance (drainage or irrigation control)</span>
+              </li>
+              <li>
+                <CheckCircle2 size={18} className="check-icon" />
+                <span>Recommended agricultural spray and treatment options</span>
+              </li>
+              <li>
+                <CheckCircle2 size={18} className="check-icon" />
+                <span>Helps prevent rapid disease spread across adjacent rice paddies</span>
+              </li>
+            </ul>
+            <div className="feature-button-group">
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => scrollToSection("section-history")}
+              >
+                <Sprout size={18} />
+                Explore Health Advisory
+              </button>
+              <button
+                type="button"
+                className="feature-next-btn"
+                onClick={() => scrollToSection("section-history")}
+              >
+                Next: Scan History <ChevronDown size={16} />
+              </button>
+            </div>
+          </div>
+
+          <div className="feature-visual-col">
+            <div className="visual-card advisory-mock-card">
+              <div className="advisory-card-header">
+                <div className="advisory-badge-warning">
+                  <span>Moderate Disease Severity</span>
+                </div>
+                <small>Rice Health Advisory #410</small>
+              </div>
+              <div className="advisory-content">
+                <strong>Recommended Farmer Actions:</strong>
+                <ol className="advisory-steps">
+                  <li>Isolate affected plot rows to prevent fungal spores from spreading</li>
+                  <li>Reduce excessive nitrogen application during peak vegetative stages</li>
+                  <li>Maintain 2–3 inches of standing water in the paddy basin</li>
+                </ol>
+              </div>
+              <div className="advisory-mock-footer">
+                <ShieldCheck size={16} />
+                <span>Agronomic rules calibrated for Indian rice cultivation</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3C: SCAN HISTORY & MONITORING TIMELINE */}
+      <section className="about-feature-section about-snap-section bg-light" id="section-history">
+        <div className="feature-section-inner reverse">
+          <div className="feature-visual-col">
+            <div className="visual-card history-mock-card">
+              <div className="history-mock-header">
+                <strong>Crop Inspection Log</strong>
+                <span className="history-count">3 Scans Recorded</span>
+              </div>
+              <div className="history-timeline-list">
+                <div className="timeline-item">
+                  <div className="timeline-icon-box">
+                    <Camera size={16} />
+                  </div>
+                  <div className="timeline-info">
+                    <strong>Paddy Plot A · North Corner</strong>
+                    <span>Live Photo Scan · Healthy Leaf</span>
+                  </div>
+                  <span className="timeline-date">18 Nov 2026</span>
+                </div>
+                <div className="timeline-item">
+                  <div className="timeline-icon-box">
+                    <ImagePlus size={16} />
+                  </div>
+                  <div className="timeline-info">
+                    <strong>Paddy Plot B · Main Canopy</strong>
+                    <span>4 Images Uploaded · Under Review</span>
+                  </div>
+                  <span className="timeline-date">15 Nov 2026</span>
+                </div>
+                <div className="timeline-item">
+                  <div className="timeline-icon-box">
+                    <Video size={16} />
+                  </div>
+                  <div className="timeline-info">
+                    <strong>Paddy Plot C · Field Perimeter</strong>
+                    <span>Video Recording · Upscaled to 720p</span>
+                  </div>
+                  <span className="timeline-date">12 Nov 2026</span>
+                </div>
+              </div>
+              <div className="history-mock-footer">
+                <p>Digital harvest journal stored locally & synchronized with cloud</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="feature-text-col">
+            <div className="feature-step-pill">3RD SECTION (PART C) · SCAN HISTORY</div>
+            <h2>Track Previous Crop Scans & Growth History</h2>
+            <p className="feature-lead-text">
+              Maintain an organized historical archive of all your field inspections, camera captures,
+              and plant health evaluations across every planting cycle.
+            </p>
+            <ul className="feature-points-list">
+              <li>
+                <CheckCircle2 size={18} className="check-icon" />
+                <span>Review past scan dates, images, and corresponding diagnosis records</span>
+              </li>
+              <li>
+                <CheckCircle2 size={18} className="check-icon" />
+                <span>Monitor recovery progress after applying agricultural treatments</span>
+              </li>
+              <li>
+                <CheckCircle2 size={18} className="check-icon" />
+                <span>Compare seasonal disease trends across different harvest years</span>
+              </li>
+              <li>
+                <CheckCircle2 size={18} className="check-icon" />
+                <span>Export logs for agricultural extension officers and farm consultations</span>
+              </li>
+            </ul>
+            <div className="feature-button-group">
+              <button
+                type="button"
+                className="feature-top-btn"
+                onClick={() => scrollToSection("about-hero")}
+              >
+                Back to Top Hero ↑
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* BOTTOM FOOTER SUMMARY & TRANSPARENCY NOTICE */}
+      <footer className="about-footer-banner">
+        <div className="footer-banner-inner">
+          <div className="footer-brand-summary">
+            <div className="stat-icon leaf-bg">
+              <Leaf size={28} />
+            </div>
+            <div>
+              <h3>TerraSpectra Smart Agriculture</h3>
+              <p>
+                Collaborative research and development platform for rice crop health monitoring.
+                Disease detection models and backend endpoints are under active development.
+              </p>
+            </div>
+          </div>
+          <div className="footer-cta-buttons">
+            <button
+              type="button"
+              className="primary-button"
+              onClick={() => scrollToSection("section-upload")}
+            >
+              Upload Plant Data
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => scrollToSection("about-hero")}
+            >
+              Back to Top
+            </button>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 
   // Other pages.
@@ -1147,105 +2061,114 @@ function App() {
         </div>
       )}
 
-      {mobileOpen && (
-        <button
-          className="mobile-overlay"
-          onClick={() => setMobileOpen(false)}
-          aria-label="Close menu"
-        />
+      {/* When on About, display the full-width Farmland India experience. When on other pages, display the workspace sidebar and topbar. */}
+      {activePage !== "About" && (
+        <>
+          {mobileOpen && (
+            <button
+              className="mobile-overlay"
+              onClick={() => setMobileOpen(false)}
+              aria-label="Close menu"
+            />
+          )}
+
+          <aside className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>
+            <div className="brand">
+              <div className="brand-icon">
+                <Leaf size={34} />
+              </div>
+
+              <div>
+                <h2>Terra<span>Spectra</span></h2>
+                <p>Smart Crop Health Platform</p>
+              </div>
+
+              <button
+                className="close-menu"
+                onClick={() => setMobileOpen(false)}
+                aria-label="Close menu"
+              >
+                <X />
+              </button>
+            </div>
+
+            <p className="sidebar-label">WORKSPACE</p>
+
+            <nav className="sidebar-nav">
+              {navItems.map(({ name, icon: Icon }) => (
+                <button
+                  key={name}
+                  className={`nav-item ${
+                    activePage === name ? "active" : ""
+                  }`}
+                  onClick={() => {
+                    setActivePage(name);
+                    setMobileOpen(false);
+                  }}
+                >
+                  <Icon size={25} />
+                  <span>{name}</span>
+                </button>
+              ))}
+            </nav>
+
+            <div className="sidebar-footer">
+              <div className="footer-icon">
+                <Sprout size={27} />
+              </div>
+
+              <div>
+                <strong>Crop Health Workspace</strong>
+                <p>Welcome to TerraSpectra</p>
+              </div>
+            </div>
+          </aside>
+        </>
       )}
 
-      <aside className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>
-        <div className="brand">
-          <div className="brand-icon">
-            <Leaf size={34} />
-          </div>
-
-          <div>
-            <h2>Terra<span>Spectra</span></h2>
-            <p>Smart Crop Health Platform</p>
-          </div>
-
-          <button
-            className="close-menu"
-            onClick={() => setMobileOpen(false)}
-            aria-label="Close menu"
-          >
-            <X />
-          </button>
-        </div>
-
-        <p className="sidebar-label">WORKSPACE</p>
-
-        <nav className="sidebar-nav">
-          {navItems.map(({ name, icon: Icon }) => (
+      <main className={`main-area ${activePage === "About" ? "landing-main-full" : ""}`}>
+        {activePage !== "About" && (
+          <header className="topbar">
             <button
-              key={name}
-              className={`nav-item ${
-                activePage === name ? "active" : ""
-              }`}
-              onClick={() => {
-                setActivePage(name);
-                setMobileOpen(false);
-              }}
+              className="mobile-menu"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open menu"
             >
-              <Icon size={25} />
-              <span>{name}</span>
-            </button>
-          ))}
-        </nav>
-
-        <div className="sidebar-footer">
-          <div className="footer-icon">
-            <Sprout size={27} />
-          </div>
-
-          <div>
-            <strong>Crop Health Workspace</strong>
-            <p>Welcome to TerraSpectra</p>
-          </div>
-        </div>
-      </aside>
-
-      <main className="main-area">
-        <header className="topbar">
-          <button
-            className="mobile-menu"
-            onClick={() => setMobileOpen(true)}
-            aria-label="Open menu"
-          >
-            <Menu />
-          </button>
-
-          <div className="breadcrumb">
-            <span>Workspace</span>
-            <span className="slash">/</span>
-            <strong>{activePage}</strong>
-          </div>
-
-          <div className="topbar-actions">
-            <button className="search-button">
-              <Search size={21} />
-              <span>Search</span>
+              <Menu />
             </button>
 
-            <button
-              className="icon-button"
-              aria-label="Notifications"
-            >
-              <Bell size={24} />
-            </button>
+            <div className="breadcrumb">
+              <span>Workspace</span>
+              <span className="slash">/</span>
+              <strong>{activePage}</strong>
+            </div>
 
-            <div className="profile-avatar">R</div>
-          </div>
-        </header>
+            <div className="topbar-actions">
+              <button className="search-button">
+                <Search size={21} />
+                <span>Search</span>
+              </button>
 
-        <div className="page-content">
+              <button
+                className="icon-button"
+                aria-label="Notifications"
+              >
+                <Bell size={24} />
+              </button>
+
+              <div className="profile-avatar">R</div>
+            </div>
+          </header>
+        )}
+
+        <div className={`page-content ${activePage === "About" ? "about-full-bleed" : ""}`}>
           {activePage === "Overview"
             ? renderOverview()
             : activePage === "Crop Scanner"
               ? renderScanner()
-              : renderOtherPage()}
+              : activePage === "About"
+                ? renderAbout()
+                : renderOtherPage()}
         </div>
       </main>
     </div>
