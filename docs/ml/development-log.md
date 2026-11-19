@@ -294,3 +294,20 @@
   - **Actual Result:** `Ran 28 tests in 2.117s` — `OK` (7 tests in `test_cnn3d.py` + 12 in `test_input_contract.py` + 9 in `test_tensor_shapes.py`).
 - **CUDA Smoke Command:** `python -c "import sys; sys.path.insert(0, 'ml/src'); import torch; from terraspectra_ml.models import TerraSpectra3DCNN; ..."`
   - **Actual Result:** `Smoke OK | Device: cuda | Params: 24682 | Output: (16, 2) | Peak VRAM: 34.24 MB` on `[16, 1, 128, 9, 9]` `float32` input.
+
+## Day 10 (Week 2, Day 3) — Build a Reproducible PyTorch Training Pipeline
+**Date:** Friday, 20 November 2026  
+**Engineer:** Harsh (ML Engineering Lead)  
+**Branch:** `Harsh`
+
+### 1. Objectives & Pipeline Modules Implemented
+- **`ml/src/terraspectra_ml/training/engine.py`:** Separated `train_one_epoch()` and `validate_one_epoch()` with strict `model.train()` / `model.eval()` + `@torch.no_grad()` isolation, device transfer, and automatic 4D `[B, D, 9, 9]` to 5D `[B, 1, D, 9, 9]` batch adaptation.
+- **`ml/src/terraspectra_ml/training/losses.py`:** Configurable `CrossEntropyLoss` factory (`build_loss_function`) with explicit guardrails against unverified class weights and logits/target shape validation (`compute_classification_loss`).
+- **`ml/src/terraspectra_ml/training/train.py` & `__init__.py`:** Implemented `set_reproducibility_seed()`, `build_optimizer()` (`AdamW`/`Adam`), `save_checkpoint()`, `load_checkpoint()`, `run_training()` (saving `resolved_training_config.yaml`, `training_history.json`, best-validation checkpoint, and periodic recovery checkpoints), and `main()` entry point enforcing the dataset blocker until verified `train_loader`/`val_loader` splits are supplied.
+- **`ml/configs/training.yaml`:** Structured into `training`, `optimizer`, `loss`, `reproducibility`, `validation`, `checkpointing`, `logging`, and `hardware` sections.
+
+### 2. Automated Tests & Software Smoke Run Executed
+- **Unit Test Command:** `python -m unittest discover -s ml/tests -v`
+  - **Actual Result:** `Ran 32 tests in 3.167s` — `OK` (4 tests in `test_training.py` + 7 in `test_cnn3d.py` + 12 in `test_input_contract.py` + 9 in `test_tensor_shapes.py` passed).
+- **Software Smoke Run (Synthetic Fixtures Only):** Executed 2-epoch training/validation smoke run on synthetic 4D DataLoader batches (`[32, 64, 9, 9]` train, `[16, 64, 9, 9]` val, `batch_size=16`) in an isolated temporary directory.
+  - **Actual Result:** `Smoke Run OK | Device: cuda | Epochs: 2 | Best Val Loss: 0.6905 | Peak VRAM MB: 32.97`. (Strictly software verification; makes zero model accuracy claims.)
