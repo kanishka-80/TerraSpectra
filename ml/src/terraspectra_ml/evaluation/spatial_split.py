@@ -1,61 +1,30 @@
-"""Deterministic spatial-group train/validation/test splitting."""
-
 import numpy as np
 
+def spatial_split(records, train=0.70, validation=0.15):
+    if train <= 0 or validation <= 0 or train + validation >= 1:
+        raise ValueError("Invalid split proportions")
 
-def spatial_group_split(
-    group_ids,
-    train_fraction=0.70,
-    validation_fraction=0.15,
-    test_fraction=0.15,
-    random_state=42,
-):
-    """Split complete spatial groups to reduce spatial leakage."""
-    fractions = (
-        train_fraction,
-        validation_fraction,
-        test_fraction,
-    )
+    # Group by source row strips; neighboring patches remain together.
+    rows = np.array([r["row"] for r in records])
+    if len(rows) == 0:
+        raise ValueError("No records to split")
 
-    if any(value < 0 for value in fractions):
-        raise ValueError("Split fractions cannot be negative.")
+    unique = np.unique(rows)
+    n = len(unique)
+    a = max(1, int(n * train))
+    b = max(a + 1, int(n * (train + validation)))
+    b = min(b, n)
 
-    if not np.isclose(sum(fractions), 1.0):
-        raise ValueError("Split fractions must sum to 1.")
-
-    groups = np.asarray(group_ids)
-
-    if groups.ndim != 1 or len(groups) == 0:
-        raise ValueError("group_ids must be a non-empty 1D array.")
-
-    unique_groups = np.unique(groups)
-
-    if len(unique_groups) < 3:
-        raise ValueError(
-            "At least three distinct spatial groups are required."
-        )
-
-    rng = np.random.default_rng(random_state)
-    shuffled = rng.permutation(unique_groups)
-
-    train_end = max(1, int(len(shuffled) * train_fraction))
-    validation_end = max(
-        train_end + 1,
-        int(len(shuffled) * (train_fraction + validation_fraction)),
-    )
-    validation_end = min(validation_end, len(shuffled) - 1)
-
-    train_groups = shuffled[:train_end]
-    validation_groups = shuffled[train_end:validation_end]
-    test_groups = shuffled[validation_end:]
+    groups = {
+        "train": set(unique[:a]),
+        "validation": set(unique[a:b]),
+        "test": set(unique[b:])
+    }
 
     return {
-        "train": np.flatnonzero(np.isin(groups, train_groups)),
-        "validation": np.flatnonzero(
-            np.isin(groups, validation_groups)
-        ),
-        "test": np.flatnonzero(np.isin(groups, test_groups)),
-        "train_groups": train_groups,
-        "validation_groups": validation_groups,
-        "test_groups": test_groups,
+        name: np.array([
+            i for i, r in enumerate(records)
+            if r["row"] in group
+        ], dtype=int)
+        for name, group in groups.items()
     }

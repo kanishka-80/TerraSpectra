@@ -1,0 +1,3 @@
+# Week 2 Progress — 19 November 2026
+
+Today, work continued on the TerraSpectra hyperspectral data pipeline. Dataset and preprocessing configuration files were added and updated. The implementation includes raster reading, preprocessing, patch extraction, patch manifests, data loading utilities, dimensionality reduction, and spatial splitting. A dataset preparation script and supporting documentation were also created. A Week 2 test file was added to check patch extraction, invalid patch filtering, normalization, and spatial splitting. Compilation completed without reported errors. Automated tests remain pending because the test runner is not yet available in the project environment. All work remains on the khushi branch.

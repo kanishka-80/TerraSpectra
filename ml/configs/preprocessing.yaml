@@ -1,0 +1,14 @@
+normalization:
+  method: standard
+  fit_on: train_only
+  save_parameters: true
+  clip_invalid: false
+
+pca:
+  enabled: true
+  fit_on: train_only
+  components: 10
+
+quality:
+  reject_nonfinite: true
+  nodata_policy: mask

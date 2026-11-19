@@ -1,20 +1,29 @@
-data:
-  expected_layout: bands_rows_columns
-  patch_size: 9
-  patch_stride: 1
-  batch_size: 16
-  num_workers: 0
+source:
+  identifier: UNCONFIRMED
+  path: null
+  license: UNCONFIRMED
+  acquisition_date: null
 
-quality:
-  require_crs: true
-  require_transform: true
-  reject_empty_bands: true
-  report_constant_bands: true
-  report_nonfinite_pixels: true
+study_area:
+  description: To be confirmed
+  subset_window: null
 
-reproducibility:
-  random_seed: 42
+bands:
+  indices: null
+  wavelengths_nm: null
 
-labels:
-  require_verified_source: true
-  allow_fabricated_labels: false
+patch:
+  size: 16
+  stride: 8
+  edge_policy: exclude
+  max_invalid_fraction: 0.20
+
+raster:
+  nodata_policy: mask
+  output_dir: data/processed/week2
+
+contract:
+  axes: NCHW
+  dtype: float32
+  label_semantics: UNCONFIRMED
+  confirmed_by_harsh: false

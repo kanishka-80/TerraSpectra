@@ -1,46 +1,66 @@
-"""Run a window-based raster quality audit."""
-
 import argparse
 import json
-import sys
 from pathlib import Path
+import numpy as np
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "ml" / "src"))
-
-from terraspectra_ml.data.quality_checks import validate_raster_file
-
+from terraspectra_ml.data.raster_reader import read_window, inspect_raster
+from terraspectra_ml.data.patch_dataset import (
+    extract_patches, filter_invalid_patches
+)
+from terraspectra_ml.data.patch_manifest import write_manifest
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("scene")
-    parser.add_argument("--output", default="data-quality-report.json")
-    parser.add_argument("--window-size", type=int, default=512)
+    parser.add_argument("--source", required=True)
+    parser.add_argument("--output", default="data/processed/week2")
+    parser.add_argument("--patch-size", type=int, default=16)
+    parser.add_argument("--stride", type=int, default=8)
+    parser.add_argument("--max-invalid", type=float, default=0.20)
     args = parser.parse_args()
 
-    quality = validate_raster_file(
-        args.scene,
-        window_size=args.window_size,
-    )
-
-    report = {
-        "scene": quality["metadata"],
-        "quality": quality,
-        "model_ready": False,
-        "note": (
-            "Raster quality alone does not establish disease labels "
-            "or model readiness."
-        ),
-    }
-
+    import rasterio
+    source = Path(args.source)
     output = Path(args.output)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    output.mkdir(parents=True, exist_ok=True)
 
-    print(f"Quality report saved: {output}")
-    print(f"Raster quality valid: {quality['valid']}")
-    print("Model readiness: not established by raster quality alone.")
+    info = inspect_raster(source)
+    records = []
+    arrays = []
 
+    with rasterio.open(source) as src:
+        for _, window in src.block_windows(1):
+            sample = read_window(source, window)
+            patches, locations = extract_patches(
+                sample["image"], args.patch_size, args.stride
+            )
+            patches, keep = filter_invalid_patches(
+                patches, args.max_invalid
+            )
+
+            original = [loc for loc, valid in zip(locations, keep) if valid]
+            for patch, (row, col) in zip(patches, original):
+                patch_id = len(arrays)
+                arrays.append(patch)
+                records.append({
+                    "patch_id": patch_id,
+                    "source_id": str(source),
+                    "row": int(window.row_off + row),
+                    "col": int(window.col_off + col),
+                    "crs": str(sample["crs"]),
+                    "transform": str(sample["transform"]),
+                    "label_source": "UNVERIFIED",
+                    "label": None,
+                })
+
+    if not arrays:
+        raise RuntimeError("No valid patches generated")
+
+    np.save(output / "patches.npy", np.stack(arrays))
+    write_manifest(records, output / "manifest.csv")
+    (output / "source_metadata.json").write_text(
+        json.dumps(info, indent=2), encoding="utf-8"
+    )
+    print(f"Generated {len(arrays)} patches in {output}")
 
 if __name__ == "__main__":
     main()

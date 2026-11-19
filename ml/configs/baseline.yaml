@@ -1,16 +1,4 @@
 baseline:
   enabled: false
-  reason: >
-    Enable only after label audit confirms valid ground-truth classes
-    and spatially independent train, validation and test samples.
-
-models:
-  - RandomForest
-  - SVM
-
-evaluation:
-  split_strategy: spatial_group
-  report:
-    - accuracy
-    - macro_f1
-    - confusion_matrix
+  reason: Enable only after verified labels and Harsh approval
+  seed: 42

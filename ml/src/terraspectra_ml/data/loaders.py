@@ -1,24 +1,32 @@
-"""Optional PyTorch loader adapter."""
+import numpy as np
 
-def create_torch_loader(
-    dataset,
-    batch_size=16,
-    shuffle=False,
-    num_workers=0,
-):
+def make_dataloader(patches, labels=None, batch_size=8,
+                    shuffle=False, seed=42):
     try:
-        from torch.utils.data import DataLoader
+        import torch
+        from torch.utils.data import TensorDataset, DataLoader
     except ImportError as exc:
-        raise ImportError(
-            "PyTorch is optional. Install torch to use this loader."
-        ) from exc
+        raise RuntimeError("PyTorch is required for DataLoader") from exc
 
-    if batch_size < 1:
-        raise ValueError("batch_size must be positive.")
+    x = np.asarray(patches, dtype=np.float32)
+    if x.ndim != 4:
+        raise ValueError("Expected patches shaped (N, C, H, W)")
+    if len(x) == 0:
+        raise ValueError("Dataset is empty")
+    if not np.isfinite(x).all():
+        raise ValueError("Patches contain invalid values")
 
+    tensors = [torch.from_numpy(x)]
+    if labels is not None:
+        y = np.asarray(labels)
+        if len(y) != len(x):
+            raise ValueError("Image and label counts differ")
+        tensors.append(torch.as_tensor(y, dtype=torch.long))
+
+    dataset = TensorDataset(*tensors)
+    generator = torch.Generator()
+    generator.manual_seed(seed)
     return DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=shuffle,
-        num_workers=num_workers,
+        dataset, batch_size=batch_size,
+        shuffle=shuffle, generator=generator
     )

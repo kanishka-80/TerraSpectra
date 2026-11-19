@@ -1,42 +1,29 @@
-"""Optional PCA fitted only on training observations."""
+import numpy as np
 
 class SpectralPCA:
-    def __init__(self, n_components=3, random_state=42):
+    def __init__(self, n_components=10):
         self.n_components = n_components
-        self.random_state = random_state
         self.model = None
 
-    def fit(self, training_data):
-        try:
-            from sklearn.decomposition import PCA
-        except ImportError as exc:
-            raise ImportError("PCA requires scikit-learn.") from exc
-
-        import numpy as np
-
-        values = np.asarray(training_data, dtype=float)
-
-        if values.ndim != 2 or not np.isfinite(values).all():
-            raise ValueError("Training data must be a finite 2D array.")
-
-        if self.n_components > min(values.shape):
-            raise ValueError(
-                "n_components cannot exceed the smaller data dimension."
-            )
-
-        self.model = PCA(
-            n_components=self.n_components,
-            random_state=self.random_state,
-        )
-        self.model.fit(values)
+    def fit(self, training_samples):
+        from sklearn.decomposition import PCA
+        x = np.asarray(training_samples)
+        if x.ndim != 2 or not np.isfinite(x).all():
+            raise ValueError("Expected finite 2D training data")
+        count = min(self.n_components, x.shape[0], x.shape[1])
+        if count < 1:
+            raise ValueError("Not enough samples or bands")
+        self.model = PCA(n_components=count, random_state=42)
+        self.model.fit(x)
         return self
 
-    def transform(self, data):
+    def transform(self, samples):
         if self.model is None:
-            raise RuntimeError("Call fit() before transform().")
-        return self.model.transform(data)
+            raise RuntimeError("Fit PCA on training data first")
+        return self.model.transform(samples)
 
-    def inverse_transform(self, transformed_data):
+    @property
+    def explained_variance_ratio(self):
         if self.model is None:
-            raise RuntimeError("Call fit() before inverse_transform().")
-        return self.model.inverse_transform(transformed_data)
+            raise RuntimeError("PCA not fitted")
+        return self.model.explained_variance_ratio_
