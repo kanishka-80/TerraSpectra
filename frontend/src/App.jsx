@@ -8,6 +8,9 @@ import {
   Play, Eye
 } from "lucide-react";
 import "./App.css";
+import DiseaseAnalysis from "./pages/DiseaseAnalysis.jsx";
+import ScanHistory from "./pages/ScanHistory.jsx";
+import SettingsPage from "./pages/Settings.jsx";
 
 const navItems = [
   { name: "About", icon: Info },
@@ -2168,7 +2171,20 @@ function App() {
               ? renderScanner()
               : activePage === "About"
                 ? renderAbout()
-                : renderOtherPage()}
+                : activePage === "Disease Analysis"
+                  ? (
+                    <DiseaseAnalysis
+                      selectedMedia={selectedMedia}
+                      selectedImages={selectedImages}
+                      mediaType={mediaType}
+                      onNavigate={setActivePage}
+                    />
+                  )
+                  : activePage === "Scan History"
+                    ? <ScanHistory />
+                    : activePage === "Settings"
+                      ? <SettingsPage />
+                      : renderOtherPage()}
         </div>
       </main>
     </div>
