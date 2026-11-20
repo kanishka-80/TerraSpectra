@@ -311,3 +311,19 @@
   - **Actual Result:** `Ran 32 tests in 3.167s` — `OK` (4 tests in `test_training.py` + 7 in `test_cnn3d.py` + 12 in `test_input_contract.py` + 9 in `test_tensor_shapes.py` passed).
 - **Software Smoke Run (Synthetic Fixtures Only):** Executed 2-epoch training/validation smoke run on synthetic 4D DataLoader batches (`[32, 64, 9, 9]` train, `[16, 64, 9, 9]` val, `batch_size=16`) in an isolated temporary directory.
   - **Actual Result:** `Smoke Run OK | Device: cuda | Epochs: 2 | Best Val Loss: 0.6905 | Peak VRAM MB: 32.97`. (Strictly software verification; makes zero model accuracy claims.)
+
+## Day 11 (Week 2, Day 4) — Model Evaluation, Metrics & Baseline Reporting
+**Date:** Saturday, 21 November 2026  
+**Engineer:** Harsh (ML Engineering Lead)  
+**Branch:** `Harsh`
+
+### 1. Objectives & Modules Implemented
+- **`ml/src/terraspectra_ml/evaluation/metrics.py` & `__init__.py`:** Implemented `compute_classification_metrics()` and `analyze_class_distribution()` computing overall Accuracy, Macro/Weighted/Micro Precision, Recall, and F1-score, explicit `(actual_class x predicted_class)` confusion matrices ordered by class ID, per-class metrics with zero-support/zero-prediction warnings, and class imbalance diagnostics.
+- **`ml/src/terraspectra_ml/evaluation/reports.py`:** Implemented `build_evaluation_report()`, `render_markdown_report()`, and `export_evaluation_report()` exporting reproducible JSON and Markdown evaluation reports with full experiment metadata and scientific limitations.
+- **`ml/scripts/evaluate.py`:** Built CLI and programmatic evaluation entry point (`evaluate_model_on_loader()`, `main()`) enforcing `model.eval()`, `@torch.no_grad()`, and explicit dataset/checkpoint blocker checks until verified labels and trained checkpoints exist.
+- **`docs/ml/baseline-evaluation.md`:** Documented the `TerraSpectra3DCNN` baseline comparison invariants and spatial block separation rules ($\ge 4$-pixel buffer margin) to prevent spatial leakage.
+
+### 2. Automated Tests & Real-Evaluation Blocker Check
+- **Unit Test Command:** `python -m unittest discover -s ml/tests -v`
+  - **Actual Result:** `Ran 38 tests in 9.047s` — `OK` (6 new tests in `test_metrics.py` + 32 existing tests passed).
+- **Real Evaluation Status:** Blocked pending verified hyperspectral dataset splits, confirmed labels (`confirmed: true` in `ml/configs/classes.yaml`), and a trained model checkpoint; no fabricated baseline accuracy was generated.
