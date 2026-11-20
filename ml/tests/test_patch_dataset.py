@@ -34,7 +34,7 @@ class TestPatchDataset(unittest.TestCase):
 
     def test_invalid_patch_size(self):
         with self.assertRaises(ValueError):
-            extract_patches(np.ones((2, 4, 4)), patch_size=8)
+            extract_patches(np.ones((2, 4, 4)), patch_size=0)
 
     def test_patch_metadata_positions_and_transform(self):
         image = np.arange(1 * 6 * 6).reshape(1, 6, 6)

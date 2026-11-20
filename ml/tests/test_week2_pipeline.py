@@ -11,14 +11,14 @@ from terraspectra_ml.evaluation.spatial_split import spatial_split
 
 def test_patch_shape():
     image = np.ones((4, 32, 32), dtype=np.float32)
-    patches, locations = extract_patches(image, 16, 8)
+    patches, locations = extract_patches(image, 16, 8, return_locations=True)
     assert patches.shape == (9, 4, 16, 16)
     assert len(locations) == 9
 
 
 def test_small_image():
     patches, locations = extract_patches(
-        np.ones((3, 4, 4)), 16, 8
+        np.ones((3, 4, 4)), 16, 8, return_locations=True
     )
     assert len(patches) == 0
     assert locations == []
@@ -87,3 +87,18 @@ def test_invalid_split():
             train=0.8,
             validation=0.3
         )
+
+
+def test_spatial_split_buffer_excludes_boundary_records():
+    records = [{"row": i * 16, "col": 0} for i in range(30)]
+    splits = spatial_split(records, buffer_pixels=16)
+
+    train = set(splits["train"])
+    validation = set(splits["validation"])
+    test = set(splits["test"])
+    excluded = set(splits["excluded"])
+
+    assert not (train & validation)
+    assert not (train & test)
+    assert not (validation & test)
+    assert excluded
