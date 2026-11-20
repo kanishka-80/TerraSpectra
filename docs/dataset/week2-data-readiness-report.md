@@ -1,45 +1,43 @@
 # Week 2 Data Readiness Report
 
 ## Implemented locally
-
 - Raster metadata inspection and window reading interfaces.
 - Band-first patch extraction and patch metadata.
 - Invalid-patch filtering.
 - Standard and spectral normalization interfaces.
 - PCA implementation with dedicated tests.
-- Optional PyTorch DataLoader interface and dependency error handling.
+- Optional PyTorch DataLoader interface.
 - Tiled raster preparation with patch-sized overlap halos.
 - Patch shards and a CSV manifest to avoid collecting the complete dataset in RAM.
 - Contiguous spatial row-band split with an optional exclusion buffer.
-- CSV label audit that reports missing labels and duplicate IDs.
+- CSV label audit for missing labels and duplicate IDs.
 
 ## Validation performed
+- Automated suite executed using the separate Python 3.12.10 environment with CPU PyTorch 2.15.0+cpu.
+- Command: `pytest ml/tests tests -q`
+- Result: 43 passed, 1 skipped in 85.44 seconds.
+- `ml/scripts/prepare_dataset.py --help` completed successfully.
+- One skipped test remains to be investigated; its reason is not yet confirmed.
 
-The automated test suite is run locally with:
-
-`pytest ml/tests tests -q`
-
-A passing test suite validates the tested code paths only. It does not establish real-scene model readiness.
+A passing test suite validates tested code paths only. It does not establish real-scene model readiness.
 
 ## External requirements still pending
-
 1. A selected, licensed real raster scene and its acquisition metadata.
 2. Confirmation of Harsh's tensor and preprocessing contract.
 3. Verified label source, label semantics, and sample alignment.
 4. A real-scene preparation run and manual inspection of generated patches.
-5. A leakage review using the actual patch geometry and study area.
-6. A compatible PyTorch installation and actual DataLoader execution.
+5. A leakage review using actual patch geometry and study area.
+6. End-to-end validation using the confirmed real dataset and labels.
 
 ## Important limitations
-
 - Labels are not generated or inferred by this pipeline.
 - Label provenance is not established by CSV structure.
 - Spatial row bands are a conservative baseline, not proof of independence for every study area.
-- The optional spatial buffer must be selected using the actual patch dimensions and overlap.
+- The optional spatial buffer must be selected using actual patch dimensions and overlap.
 - Tiled output is stored as multiple `.npy` shards plus a manifest, not as one in-memory array.
+- Synthetic or unit-test inputs, if used, must not be represented as real satellite-scene validation.
 
 ## Readiness decision
-
-The software interfaces and automated tests can be developed without a real scene.
-End-to-end scientific validation and supervised model training remain pending until
+Week 2 software implementation and the current automated test run are complete.
+Real-scene scientific validation and supervised model training remain pending until
 the external data, label, and tensor-contract requirements are confirmed.
