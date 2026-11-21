@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from backend.app.api.v1.predictions import router as predictions_router
 
 from backend.app.core.config import settings
 from backend.app.core.exceptions import (
@@ -28,6 +29,11 @@ app.include_router(
     tags=["System"],
 )
 
+app.include_router(
+    predictions_router,
+    prefix=settings.API_PREFIX,
+    tags=["Predictions"],
+)
 
 @app.get("/")
 def root():
