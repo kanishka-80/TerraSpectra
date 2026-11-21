@@ -41,3 +41,10 @@ A passing test suite validates tested code paths only. It does not establish rea
 Week 2 software implementation and the current automated test run are complete.
 Real-scene scientific validation and supervised model training remain pending until
 the external data, label, and tensor-contract requirements are confirmed.
+
+## Skipped test clarification
+The recorded skipped test is the missing-PyTorch error-path test in
+`ml/tests/test_loaders.py`. It skips when PyTorch is installed because that
+environment cannot exercise the missing-dependency branch. Loader batching
+and invalid batch-size behavior are covered by separate tests. The skip is
+environment-dependent and is not a test failure.
