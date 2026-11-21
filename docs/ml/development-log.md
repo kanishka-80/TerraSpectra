@@ -327,3 +327,22 @@
 - **Unit Test Command:** `python -m unittest discover -s ml/tests -v`
   - **Actual Result:** `Ran 38 tests in 9.047s` — `OK` (6 new tests in `test_metrics.py` + 32 existing tests passed).
 - **Real Evaluation Status:** Blocked pending verified hyperspectral dataset splits, confirmed labels (`confirmed: true` in `ml/configs/classes.yaml`), and a trained model checkpoint; no fabricated baseline accuracy was generated.
+
+## Day 12 (Week 2, Day 5) — Integrate the Hyperspectral Data Pipeline with the 3D-CNN
+**Date:** Sunday, 22 November 2026  
+**Engineer:** Harsh (ML Engineering Lead)  
+**Collaborator:** Khushi (ML & Data Engineering)  
+**Branch:** `Harsh`
+
+### 1. Objectives & Integration Performed
+- Fetched and inspected Khushi's latest Week 2 data pipeline commits on `origin/khushi` (`f032914`: `preprocessing.py`, `patch_dataset.py`, `loaders.py`, `spatial_split.py`, and `ml/configs/data.yaml`).
+- Built `ml/tests/test_data_model_integration.py` executing Khushi's actual `extract_patches()`, `spatial_group_split()`, `StandardNormalizer`, `PatchDataset`, and `make_dataloader()` end-to-end into `adapt_4d_patch_batch_to_5d()`, `TerraSpectra3DCNN`, `CrossEntropyLoss`, `AdamW`, `train_one_epoch()`, `validate_one_epoch()`, and `evaluate_model_on_loader()`.
+- Verified compatibility for both `9 x 9` patches and `16 x 16` patches (`data.yaml` `patch.size: 16`).
+- Authored `docs/ml/week2-integration-report.md` documenting verified integration stages, data contract findings, and pending real-dataset blockers.
+
+### 2. Automated Tests & GPU Smoke Results
+- **Test Command:** `python -m unittest discover -s ml/tests -v`
+  - **Actual Result:** `Ran 40 tests in 25.281s` — `OK` (all unit and end-to-end integration tests passed).
+- **GPU Integration Smoke Check:**
+  - **Actual Result:** `Integration GPU Smoke OK | Device: cuda | Train Loss: 0.6916 | Peak VRAM MB: 27.69` on `NVIDIA GeForce RTX 3050 Laptop GPU`.
+- **Blocker:** Real hyperspectral dataset cube and confirmed ground-truth labels remain `UNCONFIRMED` in `data.yaml` / `classes.yaml`; synthetic cubes were used strictly to validate software integration.
