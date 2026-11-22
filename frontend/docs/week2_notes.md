@@ -65,3 +65,23 @@
   - Comprehensive lifecycle management: `idle`, `loading`, `success`, `empty`, `error`.
   - Concurrent submission guard preventing duplicate requests while loading.
   - Granular error message and error code surfacing.
+
+---
+
+## Day 3 — Friday, 20 November 2026
+
+### Focus: Render Prediction Overlays on Deck.gl Map
+
+#### 1. Tasks Executed
+- **Layer Factory (`frontend/src/map/layers/layerFactory.js`):**
+  - Implemented reusable Deck.gl layer builders (`buildPredictionLayer`, `buildStressAlertLayer`, `buildTileBoundaryLayer`).
+  - Strict EPSG:4326 coordinate validation (`[longitude, latitude]` order checking).
+  - Feature bounding box calculation helper (`calculateFeatureBounds`).
+  - Class color scheme mapped to ML contract (Healthy, Stressed Alert, NoData).
+  - High-contrast gold selection outline when features are selected.
+- **Prediction Layer Fixtures (`frontend/src/map/layers/predictionLayer.js`):**
+  - Contract-compliant sample GeoJSON tiles and point markers over realistic agricultural extents.
+  - Features stamped with `_isMock: true` and full scene metadata.
+- **Map Legend (`frontend/src/components/MapLegend.jsx`):**
+  - Visual separation of confirmed ML classes and provisional demo categories.
+  - Active layer count and explicit demo notice footer.

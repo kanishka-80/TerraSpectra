@@ -1,80 +1,95 @@
 /**
- * TerraSpectra — MapLegend Component
+ * TerraSpectra — MapLegend Component (Day 3 / Day 5 Deliverable)
  *
- * Displays the colour-coded prediction layer categories.
+ * Displays color-coded prediction layer categories aligned with the ML contract.
  *
- * IMPORTANT:
- * Current categories and colours are provisional demo values.
- * Update them after confirmation from the backend and ML teams.
+ * Confirmed Categories (Harsh - ml/configs/classes.yaml):
+ *   • Healthy: Normal spectral reflectance
+ *   • Stressed (Alert): Physiological stress anomaly
+ *   • NoData / Masked: Masked background or cloud
+ *
+ * Clearly marks provisional demo categories with a distinct badge.
  */
 
-import { CLASS_COLORS, CLASS_LABELS } from "../map/layers/layerFactory.js";
+import {
+  CLASS_METADATA,
+  CONFIRMED_CLASSES,
+} from "../types/prediction.js";
 
-export function MapLegend({ isDemo = true }) {
-  const categories = Object.entries(CLASS_LABELS).map(([key, label]) => {
-    const rgba = CLASS_COLORS[key] || [120, 120, 120, 180];
+export function MapLegend({
+  isDemo = true,
+  visibleCategories = null,
+  activeLayerCount = 1,
+}) {
+  // Primary confirmed classes
+  const confirmedList = [
+    CONFIRMED_CLASSES.HEALTHY,
+    CONFIRMED_CLASSES.STRESSED,
+    CONFIRMED_CLASSES.NODATA,
+  ];
 
-    const color = `rgba(
-      ${rgba[0]},
-      ${rgba[1]},
-      ${rgba[2]},
-      ${rgba[3] / 255}
-    )`;
+  // If in demo mode, include provisional categories
+  const categoryKeys = isDemo
+    ? [...confirmedList, "demo", "uncertain"]
+    : confirmedList;
 
-    return {
-      key,
-      label,
-      color,
-      // All current class labels are provisional demo values.
-      isProvisional: true,
-    };
-  });
+  // Filter if caller provided a subset of visible categories
+  const displayKeys = visibleCategories
+    ? categoryKeys.filter((k) => visibleCategories.includes(k))
+    : categoryKeys;
 
   return (
-    <div className="map-legend-card">
-      {/* Header */}
+    <aside className="map-legend" aria-label="Map Legend">
       <div className="map-legend-header">
-        <strong>Prediction Layer Legend</strong>
-
-        <span className="legend-tag">
-          {isDemo ? "DEMO OVERLAY" : "BACKEND DATA"}
+        <div className="legend-title-group">
+          <h4>Spectral Prediction Legend</h4>
+          <span className="legend-badge">
+            {isDemo ? "Sample / Demo" : "Model Output"}
+          </span>
+        </div>
+        <span className="legend-layer-count">
+          {activeLayerCount} layer{activeLayerCount !== 1 ? "s" : ""} active
         </span>
       </div>
 
-      {/* Legend categories */}
-      <div className="map-legend-items">
-        {categories.map((category) => (
-          <div key={category.key} className="legend-item">
-            <span
-              className="legend-color-box"
-              style={{ backgroundColor: category.color }}
-              aria-hidden="true"
-            />
+      <div className="map-legend-items" role="list">
+        {displayKeys.map((key) => {
+          const meta = CLASS_METADATA[key] || CLASS_METADATA.demo;
+          return (
+            <div key={key} className="legend-item" role="listitem">
+              <span
+                className="legend-color-box"
+                style={{ backgroundColor: meta.hex }}
+                aria-hidden="true"
+              />
 
-            <span className="legend-item-label">
-              {category.label}
-            </span>
-
-            {category.isProvisional && (
-              <span className="provisional-pill">
-                Provisional
-              </span>
-            )}
-          </div>
-        ))}
+              <div className="legend-item-info">
+                <span className="legend-item-label">{meta.name}</span>
+                {meta.isAlert && (
+                  <span className="alert-pill" title="Early stress alert">
+                    Alert
+                  </span>
+                )}
+                {meta.isProvisional && (
+                  <span className="provisional-pill" title="Provisional category awaiting ML confirmation">
+                    Provisional
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Footer information */}
       <div className="map-legend-footer" role="note">
-        <span aria-hidden="true">ⓘ</span>
-
-        <span>
+        <span className="info-icon" aria-hidden="true">ⓘ</span>
+        <p>
           {isDemo
-            ? "DEMO: Geometry, categories and locations are sample placeholders awaiting backend and ML confirmation."
-            : "Backend data mode: Verify class labels, geometry and metadata against the confirmed backend contract."}
-        </span>
+            ? "DEMO: Geometry and categories are sample placeholders. Not real farm crop stress predictions."
+            : "EPSG:4326 | Predictions derived from hyperspectral 3D-CNN / ViT pipeline."}
+        </p>
       </div>
-    </div>
+    </aside>
   );
 }
 
