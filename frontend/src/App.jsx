@@ -1126,8 +1126,6 @@ function App() {
       {/* TOP PART: FARMLAND INDIA-INSPIRED HERO & HEADER */}
       <section className="about-hero about-snap-section" id="about-hero">
         <div className="about-hero-overlay" />
-        <div className="hero-ambient-glow glow-left" aria-hidden="true" />
-        <div className="hero-ambient-glow glow-right" aria-hidden="true" />
 
         {/* Farmland India Style Top Navigation Bar */}
         <header className="about-topbar">
