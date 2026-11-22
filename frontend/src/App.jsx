@@ -4,7 +4,8 @@ import {
   LayoutDashboard, ScanLine, Sprout, History, Settings,
   Bell, Search, Leaf, Upload, ImagePlus, ArrowRight,
   Activity, Menu, X, ShieldCheck, Camera, Video, Square,
-  Info, Sparkles, CheckCircle2, ChevronDown
+  Info, Sparkles, CheckCircle2, ChevronDown,
+  BookOpen, UploadCloud, Bot, Lightbulb
 } from "lucide-react";
 import "./App.css";
 import { usePrediction } from "./hooks/usePrediction.js";
@@ -47,7 +48,7 @@ function App() {
   const recordedChunksRef = useRef([]);
   const discardRecordingRef = useRef(false);
 
-  // Prediction API hook â€” loading/success/error states + mock mode awareness
+  // Prediction API hook — loading/success/error states + mock mode awareness
   const {
     predict: runPrediction,
     isLoading: predictionLoading,
@@ -836,8 +837,8 @@ function App() {
               <strong>
                 {videoQuality.width} Ã— {videoQuality.height} video
                 {videoQuality.lowQuality
-                  ? " â€” Low resolution detected"
-                  : " â€” Resolution looks suitable"}
+                  ? " — Low resolution detected"
+                  : " — Resolution looks suitable"}
               </strong>
 
               <p>
@@ -909,7 +910,7 @@ function App() {
               <div>
                 <strong>
                   {predictionResult._isMock
-                    ? "Mock Mode â€” Backend not connected"
+                    ? "Mock Mode — Backend not connected"
                     : "Prediction received from server"}
                 </strong>
                 <p>
@@ -938,7 +939,7 @@ function App() {
           <p className="analysis-note">
             <ShieldCheck size={16} />
             {isMockMode
-              ? "Mock mode active â€” Set VITE_API_BASE_URL in .env to connect to the real backend."
+              ? "Mock mode active — Set VITE_API_BASE_URL in .env to connect to the real backend."
               : "Disease detection will be available after backend and model integration."}
           </p>
         </section>
@@ -999,7 +1000,7 @@ function App() {
             <strong>Choose plant images</strong>
 
             <span>
-              JPG, JPEG or PNG Â· Up to 10 MB each Â· Select multiple images
+              JPG, JPEG or PNG · Up to 10 MB each · Select multiple images
             </span>
 
             <input
@@ -1016,7 +1017,7 @@ function App() {
 
             <strong>Choose a video</strong>
 
-            <span>MP4, MOV or WebM Â· Maximum 100 MB</span>
+            <span>MP4, MOV or WebM · Maximum 100 MB</span>
 
             <input
               type="file"
@@ -1112,7 +1113,6 @@ function App() {
         >
           <span className="dot-label">04. Health Insights</span>
         </button>
-        $0
         <button
           type="button"
           className="side-nav-dot"
@@ -1126,6 +1126,8 @@ function App() {
       {/* TOP PART: FARMLAND INDIA-INSPIRED HERO & HEADER */}
       <section className="about-hero about-snap-section" id="about-hero">
         <div className="about-hero-overlay" />
+        <div className="hero-ambient-glow glow-left" aria-hidden="true" />
+        <div className="hero-ambient-glow glow-right" aria-hidden="true" />
 
         {/* Farmland India Style Top Navigation Bar */}
         <header className="about-topbar">
@@ -1151,7 +1153,6 @@ function App() {
             <button type="button" onClick={() => scrollToSection("section-insights")}>
               Health Advisory
             </button>
-            $0
             <button type="button" onClick={() => scrollToSection("section-map")}>
               Map View
             </button>
@@ -1236,45 +1237,49 @@ function App() {
               className="hero-pill"
               onClick={() => scrollToSection("section-about")}
             >
-              ðŸ“– 01. About TerraSpectra
+              <BookOpen size={15} className="hero-pill-icon" />
+              <span>01. About TerraSpectra</span>
             </button>
             <button
               type="button"
               className="hero-pill"
               onClick={() => scrollToSection("section-upload")}
             >
-              ðŸ“¤ 02. Upload Plant Data
+              <UploadCloud size={15} className="hero-pill-icon" />
+              <span>02. Upload Plant Data</span>
             </button>
             <button
               type="button"
               className="hero-pill"
               onClick={() => openCamera("photo")}
             >
-              ðŸ“· Live Camera Scan
+              <Camera size={15} className="hero-pill-icon" />
+              <span>Live Camera Scan</span>
             </button>
             <button
               type="button"
               className="hero-pill"
               onClick={() => scrollToSection("section-ai")}
             >
-              ðŸ¤– 03. AI Disease Detection
+              <Bot size={15} className="hero-pill-icon" />
+              <span>03. AI Disease Detection</span>
             </button>
             <button
               type="button"
               className="hero-pill"
               onClick={() => scrollToSection("section-insights")}
             >
-              ðŸŒ± 04. Health Advisory
+              <Sprout size={15} className="hero-pill-icon" />
+              <span>04. Health Advisory</span>
             </button>
-            $0
             <button
               type="button"
               className="hero-pill"
               onClick={() => scrollToSection("section-map")}
             >
-              06. Map View
-            </button>
-          </div>
+              <Activity size={15} className="hero-pill-icon" />
+              <span>06. Map View</span>
+            </button></div>
 
           {/* Scroll Down Prompt to 1st Section: About */}
           <button
@@ -1294,7 +1299,7 @@ function App() {
       <section className="about-feature-section about-snap-section bg-light" id="section-about">
         <div className="about-story-container">
           <div className="section-header-centered">
-            <div className="feature-step-pill">1ST SECTION Â· PROJECT INTRODUCTION</div>
+            <div className="feature-step-pill">1ST SECTION · PROJECT INTRODUCTION</div>
             <h2>About TerraSpectra</h2>
             <p className="subtitle">
               A smart crop monitoring application designed to help farmers and agricultural researchers
@@ -1327,31 +1332,36 @@ function App() {
             </div>
 
             <div className="about-pillars-grid">
-              <div className="about-pillar-item">
-                <div className="pillar-icon">ðŸŒ¾</div>
+              <div className="about-pillar-item pillar-sprout">
+                <div className="pillar-icon-wrapper sprout-wrapper">
+                  <Sprout size={28} className="pillar-svg sprout-icon" />
+                </div>
                 <h4>Focused on Rice Plants</h4>
                 <p>
                   Built specifically around rice plant datasets: evaluating healthy paddy fields,
                   rice leaf lesions, stem sheaths, and vegetative canopies.
                 </p>
               </div>
-              <div className="about-pillar-item">
-                <div className="pillar-icon">ðŸ“·</div>
+              <div className="about-pillar-item pillar-camera">
+                <div className="pillar-icon-wrapper camera-wrapper">
+                  <Camera size={28} className="pillar-svg camera-icon" />
+                </div>
                 <h4>Multiple Ways to Inspect</h4>
                 <p>
                   From single leaf snapshots to batch multi-image uploads and wide-angle field videos,
                   TerraSpectra gives you flexible inspection tools.
                 </p>
               </div>
-              <div className="about-pillar-item">
-                <div className="pillar-icon">ðŸ’¡</div>
+              <div className="about-pillar-item pillar-bulb">
+                <div className="pillar-icon-wrapper bulb-wrapper">
+                  <Lightbulb size={28} className="pillar-svg bulb-icon" />
+                </div>
                 <h4>Actionable Advice</h4>
                 <p>
                   Converts technical machine learning detection into simple, practical steps that any farmer
                   or field agronomist can execute easily.
                 </p>
-              </div>
-            </div>
+              </div></div>
 
             <div className="about-cta-footer">
               <div className="about-badge-tag">
@@ -1376,7 +1386,7 @@ function App() {
       <section className="about-feature-section about-snap-section bg-white" id="section-upload">
         <div className="about-story-container">
           <div className="section-header-centered">
-            <div className="feature-step-pill">2ND SECTION Â· CROP DATA INGESTION</div>
+            <div className="feature-step-pill">2ND SECTION · CROP DATA INGESTION</div>
             <h2>Upload & Capture Crop Data</h2>
             <p className="subtitle">
               Collect and inspect your rice plant samples directly on this page using the 4 main tools.
@@ -1475,8 +1485,8 @@ function App() {
                   <strong>
                     {videoQuality.width} Ã— {videoQuality.height} video
                     {videoQuality.lowQuality
-                      ? " â€” Low resolution detected"
-                      : " â€” Resolution looks suitable"}
+                      ? " — Low resolution detected"
+                      : " — Resolution looks suitable"}
                   </strong>
                   <p>
                     {videoQuality.lowQuality
@@ -1588,7 +1598,7 @@ function App() {
                   <div>
                     <strong>
                       {predictionResult._isMock
-                        ? "Mock Mode â€” Backend not connected"
+                        ? "Mock Mode — Backend not connected"
                         : "Prediction received successfully"}
                     </strong>
                     <p>
@@ -1629,9 +1639,9 @@ function App() {
                   leaf angles, upper blades, and lower stem sheaths.
                 </p>
                 <ul className="method-specs-list">
-                  <li>â€¢ Accepts JPG, JPEG, PNG, and WebP</li>
-                  <li>â€¢ Up to 10 MB per individual image</li>
-                  <li>â€¢ Instant preview directly on this page</li>
+                  <li>• Accepts JPG, JPEG, PNG, and WebP</li>
+                  <li>• Up to 10 MB per individual image</li>
+                  <li>• Instant preview directly on this page</li>
                 </ul>
                 <label className="primary-button upload-btn-label">
                   <ImagePlus size={16} />
@@ -1658,9 +1668,9 @@ function App() {
                   detect localized disease patches.
                 </p>
                 <ul className="method-specs-list">
-                  <li>â€¢ Supports MP4, MOV, and WebM formats</li>
-                  <li>â€¢ Generous file size limit up to 100 MB</li>
-                  <li>â€¢ Client-side 720p HD video upscaling tool</li>
+                  <li>• Supports MP4, MOV, and WebM formats</li>
+                  <li>• Generous file size limit up to 100 MB</li>
+                  <li>• Client-side 720p HD video upscaling tool</li>
                 </ul>
                 <label className="secondary-button upload-btn-label">
                   <Video size={16} />
@@ -1686,9 +1696,9 @@ function App() {
                   Opens right over this page.
                 </p>
                 <ul className="method-specs-list">
-                  <li>â€¢ Fast camera viewfinder with daylight focus</li>
-                  <li>â€¢ In-browser camera capture without extra apps</li>
-                  <li>â€¢ Take multiple photos in one active session</li>
+                  <li>• Fast camera viewfinder with daylight focus</li>
+                  <li>• In-browser camera capture without extra apps</li>
+                  <li>• Take multiple photos in one active session</li>
                 </ul>
                 <button
                   type="button"
@@ -1712,9 +1722,9 @@ function App() {
                   your rice paddy, saving the video right here.
                 </p>
                 <ul className="method-specs-list">
-                  <li>â€¢ Real-time webcam and mobile camera recording</li>
-                  <li>â€¢ Built-in timer and safe stop-and-save logic</li>
-                  <li>â€¢ Preview video right on this page</li>
+                  <li>• Real-time webcam and mobile camera recording</li>
+                  <li>• Built-in timer and safe stop-and-save logic</li>
+                  <li>• Preview video right on this page</li>
                 </ul>
                 <button
                   type="button"
@@ -1812,7 +1822,7 @@ function App() {
           </div>
 
           <div className="feature-text-col">
-            <div className="feature-step-pill">3RD SECTION (PART A) Â· AI DISEASE DETECTION</div>
+            <div className="feature-step-pill">3RD SECTION (PART A) · AI DISEASE DETECTION</div>
             <h2>AI-Powered Crop Disease Identification</h2>
             <p className="feature-lead-text">
               Utilize machine learning computer vision models trained specifically on rice crops to
@@ -1863,7 +1873,7 @@ function App() {
       <section className="about-feature-section about-snap-section bg-white" id="section-insights">
         <div className="feature-section-inner">
           <div className="feature-text-col">
-            <div className="feature-step-pill">3RD SECTION (PART B) Â· HEALTH INSIGHTS</div>
+            <div className="feature-step-pill">3RD SECTION (PART B) · HEALTH INSIGHTS</div>
             <h2>Actionable Plant Health Insights for Farmers</h2>
             <p className="feature-lead-text">
               Transform technical AI predictions into clear, understandable advisories so farmers
@@ -1919,7 +1929,7 @@ function App() {
                 <ol className="advisory-steps">
                   <li>Isolate affected plot rows to prevent fungal spores from spreading</li>
                   <li>Reduce excessive nitrogen application during peak vegetative stages</li>
-                  <li>Maintain 2â€“3 inches of standing water in the paddy basin</li>
+                  <li>Maintain 2–3 inches of standing water in the paddy basin</li>
                 </ol>
               </div>
               <div className="advisory-mock-footer">
@@ -1946,8 +1956,8 @@ function App() {
                     <Camera size={16} />
                   </div>
                   <div className="timeline-info">
-                    <strong>Paddy Plot A Â· North Corner</strong>
-                    <span>Live Photo Scan Â· Healthy Leaf</span>
+                    <strong>Paddy Plot A · North Corner</strong>
+                    <span>Live Photo Scan · Healthy Leaf</span>
                   </div>
                   <span className="timeline-date">18 Nov 2026</span>
                 </div>
@@ -1956,8 +1966,8 @@ function App() {
                     <ImagePlus size={16} />
                   </div>
                   <div className="timeline-info">
-                    <strong>Paddy Plot B Â· Main Canopy</strong>
-                    <span>4 Images Uploaded Â· Under Review</span>
+                    <strong>Paddy Plot B · Main Canopy</strong>
+                    <span>4 Images Uploaded · Under Review</span>
                   </div>
                   <span className="timeline-date">15 Nov 2026</span>
                 </div>
@@ -1966,8 +1976,8 @@ function App() {
                     <Video size={16} />
                   </div>
                   <div className="timeline-info">
-                    <strong>Paddy Plot C Â· Field Perimeter</strong>
-                    <span>Video Recording Â· Upscaled to 720p</span>
+                    <strong>Paddy Plot C · Field Perimeter</strong>
+                    <span>Video Recording · Upscaled to 720p</span>
                   </div>
                   <span className="timeline-date">12 Nov 2026</span>
                 </div>
@@ -1979,7 +1989,7 @@ function App() {
           </div>
 
           <div className="feature-text-col">
-            <div className="feature-step-pill">3RD SECTION (PART C) Â· SCAN HISTORY</div>
+            <div className="feature-step-pill">3RD SECTION (PART C) · SCAN HISTORY</div>
             <h2>Track Previous Crop Scans & Growth History</h2>
             <p className="feature-lead-text">
               Maintain an organized historical archive of all your field inspections, camera captures,
@@ -2009,7 +2019,7 @@ function App() {
                 className="feature-top-btn"
                 onClick={() => scrollToSection("about-hero")}
               >
-                Back to Top Hero â†‘
+                Back to Top Hero ↑
               </button>
             </div>
           </div>
