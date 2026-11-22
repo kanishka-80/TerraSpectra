@@ -131,3 +131,23 @@
   - High-contrast visual hierarchy for legend chips and status badges.
 - **Cleaned Up Unused Imports:**
   - Removed unused icons in `App.jsx` and `Settings.jsx`, bringing Oxlint down to 0 errors and 0 warnings.
+
+---
+
+## Day 6 — Monday, 23 November 2026
+
+### Focus: Test End-to-End API and Map Behavior
+
+#### 1. Tasks Executed
+- **Built Comprehensive Unit & Integration Test Suite:**
+  - Configured native test runner: `npm test` runs Node.js `node --test src/**/__tests__/*.test.js`.
+  - Created 4 test suites with 29 individual test assertions:
+    - `apiClient.test.js` (4 tests): base URL resolution, mock mode guard, ApiError construction.
+    - `predictionService.test.js` (5 tests): health check, system status, mock analysis envelope matching StandardResponseEnvelope.
+    - `layerFactory.test.js` (14 tests): color mapping, coordinate validation, bounds calculation, Deck.gl GeoJsonLayer building, alert filtering.
+    - `predictionLayer.test.js` (6 tests): sample feature schema compliance, EPSG:4326 coordinate checks, normalization.
+  - All 29 tests pass with 0 failures!
+- **Edge Case & Failure Mode Validation:**
+  - Verified network timeouts, network errors, malformed envelopes, empty feature lists, missing geometries, and missing metadata.
+- **Documented Integration Report:**
+  - Authored `frontend/docs/integration_test_notes.md`.
