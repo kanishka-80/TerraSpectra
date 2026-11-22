@@ -85,3 +85,27 @@
 - **Map Legend (`frontend/src/components/MapLegend.jsx`):**
   - Visual separation of confirmed ML classes and provisional demo categories.
   - Active layer count and explicit demo notice footer.
+
+---
+
+## Day 4 — Saturday, 21 November 2026
+
+### Focus: Add Map Selection and Prediction Details
+
+#### 1. Tasks Executed
+- **Selected Feature Hook (`frontend/src/hooks/useSelectedFeature.js`):**
+  - Robust tracking of selected and hovered map features.
+  - Stable ID extraction (`tile_id`, `feature_id`, `id`).
+  - Normalization using `normalizePredictionFeature` for strong type-safety.
+  - Interactive selection and reset synchronization.
+- **Details Panel (`frontend/src/components/DetailsPanel.jsx`):**
+  - Displays classification, confidence score, and uncertainty.
+  - Surfaces scene ID, sensor, acquisition date, CRS (EPSG:4326), and patch dimensions.
+  - Clear provenance badges (Model name, checkpoint version, sample data indicator).
+  - Explicit "Not provided" or "Pending scene intake" for missing metadata (no misleading placeholders).
+  - High-visibility selection reset button.
+  - Empty-state guidance with scene summary statistics when no feature is selected.
+- **Map View Integration (`frontend/src/map/MapView.jsx`):**
+  - Connected click & hover picking.
+  - Visual gold selection highlight ring on active Deck.gl features.
+  - Floating hover tooltip showing label, class, and confidence.
