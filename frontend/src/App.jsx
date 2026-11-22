@@ -4,8 +4,7 @@ import {
   LayoutDashboard, ScanLine, Sprout, History, Settings,
   Bell, Search, Leaf, Upload, ImagePlus, ArrowRight,
   Activity, Menu, X, ShieldCheck, Camera, Video, Square,
-  Info, Sparkles, CheckCircle2, ChevronDown, ChevronRight,
-  Play, Eye
+  Info, Sparkles, CheckCircle2, ChevronDown
 } from "lucide-react";
 import "./App.css";
 import { usePrediction } from "./hooks/usePrediction.js";

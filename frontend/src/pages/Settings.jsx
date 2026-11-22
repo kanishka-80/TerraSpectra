@@ -4,7 +4,6 @@ import {
   Bell,
   Shield,
   Leaf,
-  ChevronRight,
   CheckCircle2,
   Save,
 } from "lucide-react";

@@ -109,3 +109,25 @@
   - Connected click & hover picking.
   - Visual gold selection highlight ring on active Deck.gl features.
   - Floating hover tooltip showing label, class, and confidence.
+
+---
+
+## Day 5 — Sunday, 22 November 2026
+
+### Focus: Build Layer Controls and Improve Dashboard Usability
+
+#### 1. Tasks Executed
+- **Layer Controls (`frontend/src/components/LayerControls.jsx`):**
+  - Toggles for Prediction Polygons, Stress Alerts, and Tile Grid Boundaries.
+  - Active layer count indicator and accessible keyboard controls.
+  - Dynamic integration with MapView Deck.gl layer list.
+- **Empty & Error State Overlays:**
+  - Informative overlay when no prediction layers are returned.
+  - Helpful overlay when all layers are toggled off with a "Show All Layers" restoration button.
+  - Clear error banner with retry callback for failed layers.
+- **Responsive Dashboard Polish (`frontend/src/App.css`):**
+  - Grid layout dynamically adjusts between desktop and mobile.
+  - Sidebar scroll management and custom slim scrollbars.
+  - High-contrast visual hierarchy for legend chips and status badges.
+- **Cleaned Up Unused Imports:**
+  - Removed unused icons in `App.jsx` and `Settings.jsx`, bringing Oxlint down to 0 errors and 0 warnings.
