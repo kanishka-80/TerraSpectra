@@ -346,3 +346,18 @@
 - **GPU Integration Smoke Check:**
   - **Actual Result:** `Integration GPU Smoke OK | Device: cuda | Train Loss: 0.6916 | Peak VRAM MB: 27.69` on `NVIDIA GeForce RTX 3050 Laptop GPU`.
 - **Blocker:** Real hyperspectral dataset cube and confirmed ground-truth labels remain `UNCONFIRMED` in `data.yaml` / `classes.yaml`; synthetic cubes were used strictly to validate software integration.
+
+## Day 13 (Week 2, Day 6) — ML Pipeline Audit, Resource Validation & Week 2 Readiness
+**Date:** Monday, 23 November 2026  
+**Engineer:** Harsh (ML Engineering Lead)  
+**Branch:** `Harsh`
+
+### 1. Objectives & Audit Scope
+- Conducted a full repository, resource, reproducibility, evaluation, data-leakage, and Week 3 ViT-readiness audit across all Week 2 ML modules (`models/`, `training/`, `evaluation/`, `configs/`, `tests/`, `scripts/`, and `origin/khushi` data pipeline).
+- Authored `docs/ml/week2-ml-audit-report.md` summarizing component statuses, severity-ranked technical debt, and Week 3 readiness.
+
+### 2. Live Audit Verification & Measurements
+- **Full Test Suite:** `python -m unittest discover -s ml/tests -v` $\rightarrow$ `Ran 40 tests in 6.593s` — `OK` (0 failures, 0 errors).
+- **Live Resource, Checkpoint & ViT Token Probe:**
+  - `AUDIT OK | Device: cuda | Params: 24682 | Size KB: 96.41 | ViT Tokens: (4, 25, 128) | Ckpt Restored: True | Peak VRAM MB: 30.87`.
+- **Week 3 Readiness:** Confirmed `SpatialSpectral3DExtractor.extract_vit_tokens()` emits `[B, 25, 128]` normalized tokens ready for Week 3 Transformer integration; real dataset training remains gated on confirmed scene and label files from Data Engineering.
