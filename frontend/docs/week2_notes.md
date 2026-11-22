@@ -45,3 +45,23 @@
 - Created `frontend/src/types/prediction.js`: Centralized JSDoc typedefs, confirmed classes, color mappings, bounding box validator, and feature normalizer.
 - Authored `frontend/docs/api_contract.md`: Comprehensive frontend/backend/ML specification.
 - Logged decisions in `frontend/docs/week2_notes.md`.
+
+---
+
+## Day 2 — Thursday, 19 November 2026
+
+### Focus: Connect Frontend to Backend Prediction Endpoints
+
+#### 1. Tasks Executed
+- **Centralized API Client (`frontend/src/services/apiClient.js`):**
+  - Configurable backend URL parsing from `VITE_API_BASE_URL`.
+  - Structured response and error parsing supporting FastAPI/Pydantic validation errors and standard error envelopes.
+  - AbortController timeout mechanism (default 15,000ms).
+  - Explicit mock mode guard preventing accidental network calls when running locally.
+- **Prediction Service (`frontend/src/services/predictionService.js`):**
+  - Integrated `/health` (basic liveness), `/api/v1/system/status` (operational diagnostics), `/api/v1/analyze` (inference), and `/predict` (scanner).
+  - Developed a high-fidelity switchable mock adapter producing contract-compliant envelopes stamped with `_isMock: true`.
+- **Prediction Hook (`frontend/src/hooks/usePrediction.js`):**
+  - Comprehensive lifecycle management: `idle`, `loading`, `success`, `empty`, `error`.
+  - Concurrent submission guard preventing duplicate requests while loading.
+  - Granular error message and error code surfacing.

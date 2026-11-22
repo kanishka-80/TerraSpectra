@@ -1,92 +1,189 @@
 /**
- * TerraSpectra — Centralized API Client
+ * TerraSpectra — Centralized API Client (Day 2 Deliverable)
  *
  * Configuration
  * ─────────────
  * Set VITE_API_BASE_URL in frontend/.env to point to the backend server.
- * Leave it empty (or unset) to activate the built-in mock adapter for
- * local UI development without a running backend.
+ * When empty or unset, the built-in switchable mock adapter is automatically active.
  *
  * Example .env:
  *   VITE_API_BASE_URL=http://localhost:8000
  *
- * NOTE: Actual endpoint paths and request/response formats are PENDING
- * confirmation from the backend team (Kanishka). Do NOT hardcode
- * assumptions about path names, field names, or response shapes.
+ * Features:
+ *   • Configurable backend URL with automatic trailing-slash trimming.
+ *   • Standardized error parsing for FastAPI/Pydantic validation errors and TerraSpectra error envelopes.
+ *   • Request timeout support via AbortController.
+ *   • Explicit mock mode detection and labelling.
  */
 
 // ─── CONFIGURATION ────────────────────────────────────────────────────────────
 
-const RAW_BASE = import.meta.env.VITE_API_BASE_URL;
+const RAW_BASE = typeof import.meta !== "undefined" && import.meta.env
+  ? import.meta.env.VITE_API_BASE_URL
+  : (typeof process !== "undefined" && process.env ? process.env.VITE_API_BASE_URL : "");
 
-/** True when no backend URL is configured — mock adapter will be used. */
+/** True when no backend URL is configured — switchable mock adapter will be used. */
 export const USE_MOCK = !RAW_BASE || RAW_BASE.trim() === "";
 
 /** Configured backend base URL with no trailing slash. */
 export const BASE_URL = USE_MOCK ? null : RAW_BASE.trim().replace(/\/$/, "");
 
-// ─── RESPONSE HANDLER ────────────────────────────────────────────────────────
+/** Default request timeout in milliseconds. */
+export const DEFAULT_TIMEOUT_MS = 15000;
+
+// ─── ERROR PARSER ─────────────────────────────────────────────────────────────
 
 /**
- * Parse a fetch Response consistently.
- *   • Returns parsed JSON when Content-Type is application/json.
- *   • Returns raw text otherwise.
- *   • Throws an Error with status + body detail on HTTP error responses.
- *
- * @param {Response} response
- * @returns {Promise<object|string>}
+ * Custom error class with structured HTTP and backend details.
  */
-async function handleResponse(response) {
-  if (!response.ok) {
-    let detail = "";
-    try { detail = await response.text(); } catch { /* ignore */ }
-    throw new Error(
-      `API Error ${response.status} ${response.statusText}${
-        detail ? ": " + detail : ""
-      }`
-    );
+export class ApiError extends Error {
+  constructor(message, status = 500, errorCode = "API_ERROR", details = null) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.errorCode = errorCode;
+    this.details = details;
   }
-
-  const contentType = response.headers.get("content-type") ?? "";
-  return contentType.includes("application/json")
-    ? response.json()
-    : response.text();
 }
 
-// ─── REQUEST HELPERS ─────────────────────────────────────────────────────────
+/**
+ * Parse an HTTP fetch Response consistently.
+ * Extracts JSON error details, Pydantic validation errors, or raw text.
+ *
+ * @param {Response} response
+ * @returns {Promise<any>}
+ */
+async function handleResponse(response) {
+  const contentType = response.headers.get("content-type") ?? "";
+  const isJson = contentType.includes("application/json");
+
+  if (!response.ok) {
+    let errorMessage = `HTTP ${response.status} ${response.statusText}`;
+    let errorCode = `HTTP_${response.status}`;
+    let details = null;
+
+    if (isJson) {
+      try {
+        const errorBody = await response.json();
+        details = errorBody;
+
+        if (errorBody.message) {
+          errorMessage = errorBody.message;
+        } else if (Array.isArray(errorBody.detail)) {
+          // FastAPI / Pydantic validation errors
+          errorMessage = errorBody.detail
+            .map((err) => `${err.loc ? err.loc.join(".") + ": " : ""}${err.msg}`)
+            .join("; ");
+          errorCode = "VALIDATION_ERROR";
+        } else if (typeof errorBody.detail === "string") {
+          errorMessage = errorBody.detail;
+        }
+
+        if (errorBody.error_code) {
+          errorCode = errorBody.error_code;
+        }
+      } catch {
+        /* fallback to status text */
+      }
+    } else {
+      try {
+        const rawText = await response.text();
+        if (rawText) errorMessage += `: ${rawText}`;
+      } catch {
+        /* ignore */
+      }
+    }
+
+    throw new ApiError(errorMessage, response.status, errorCode, details);
+  }
+
+  return isJson ? response.json() : response.text();
+}
+
+// ─── HTTP REQUEST HELPERS ─────────────────────────────────────────────────────
+
+/**
+ * Execute a fetch request with timeout support.
+ *
+ * @param {string} path - URL path (e.g. "/health")
+ * @param {RequestInit} options
+ * @param {number} [timeoutMs]
+ * @returns {Promise<any>}
+ */
+async function fetchWithTimeout(path, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
+  if (USE_MOCK) {
+    throw new ApiError("Cannot execute network request in Mock Mode.", 0, "MOCK_MODE_ACTIVE");
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  const url = `${BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return await handleResponse(response);
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new ApiError(`Request to ${path} timed out after ${timeoutMs}ms`, 408, "TIMEOUT");
+    }
+    if (err instanceof ApiError) throw err;
+    throw new ApiError(err.message || "Network request failed", 0, "NETWORK_ERROR");
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 /**
  * HTTP GET request.
  *
  * @param {string} path - e.g. "/health"
- * @returns {Promise<object|string>}
+ * @param {number} [timeoutMs]
+ * @returns {Promise<any>}
  */
-export async function apiGet(path) {
-  const response = await fetch(`${BASE_URL}${path}`, {
-    method: "GET",
-    headers: { Accept: "application/json" },
-  });
-  return handleResponse(response);
+export async function apiGet(path, timeoutMs = DEFAULT_TIMEOUT_MS) {
+  return fetchWithTimeout(
+    path,
+    {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    },
+    timeoutMs
+  );
 }
 
 /**
- * HTTP POST request — sends JSON body or FormData (for file uploads).
+ * HTTP POST request — supports JSON payload or FormData (multipart).
  *
- * @param {string}            path       - e.g. "/predict"
- * @param {object|FormData}   body
- * @param {boolean}           isFormData - set true for multipart file uploads
- * @returns {Promise<object|string>}
+ * @param {string} path - e.g. "/api/v1/analyze"
+ * @param {object|FormData} body
+ * @param {boolean} [isFormData=false]
+ * @param {number} [timeoutMs]
+ * @returns {Promise<any>}
  */
-export async function apiPost(path, body, isFormData = false) {
+export async function apiPost(path, body, isFormData = false, timeoutMs = DEFAULT_TIMEOUT_MS) {
   const headers = { Accept: "application/json" };
   if (!isFormData) headers["Content-Type"] = "application/json";
 
-  const response = await fetch(`${BASE_URL}${path}`, {
-    method: "POST",
-    headers,
-    body: isFormData ? body : JSON.stringify(body),
-  });
-  return handleResponse(response);
+  return fetchWithTimeout(
+    path,
+    {
+      method: "POST",
+      headers,
+      body: isFormData ? body : JSON.stringify(body),
+    },
+    timeoutMs
+  );
 }
 
-export default { apiGet, apiPost, USE_MOCK, BASE_URL };
+export default {
+  apiGet,
+  apiPost,
+  ApiError,
+  USE_MOCK,
+  BASE_URL,
+  DEFAULT_TIMEOUT_MS,
+};
