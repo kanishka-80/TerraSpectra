@@ -117,5 +117,15 @@ class TestTerraSpectra3DCNN(unittest.TestCase):
         self.assertTrue(torch.isfinite(out).all().item())
 
 
+    def test_top_level_extract_vit_tokens_delegator(self) -> None:
+        model = TerraSpectra3DCNN.from_configs(
+            model_config_path=ROOT_DIR / "configs" / "model_config.yaml",
+            classes_config_path=ROOT_DIR / "configs" / "classes.yaml",
+        )
+        x = torch.rand((2, 1, 64, 9, 9), dtype=torch.float32)
+        tokens = model.extract_vit_tokens(x)
+        self.assertEqual(tuple(tokens.shape), (2, 25, 128))
+
+
 if __name__ == "__main__":
     unittest.main()

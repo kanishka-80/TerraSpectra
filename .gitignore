@@ -6,3 +6,9 @@ __pycache__/
 .venv/
 env/
 
+
+# ML Artifacts, Checkpoints & Raw Data
+ml/artifacts/
+*.pt
+*.pth
+data/raw/

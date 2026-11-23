@@ -72,6 +72,11 @@ class Conv3DBlock(nn.Module):
         self.act = _get_activation(activation)
         self.drop: nn.Module = nn.Dropout3d(p=dropout) if dropout > 0.0 else nn.Identity()
 
+    def extract_vit_tokens(self, x: torch.Tensor) -> torch.Tensor:
+        """Validate 5D input and return [B, N_tokens, feature_dim] tokens for Week 3 ViT."""
+        validate_model_input(x, spec=self.contract_spec)
+        return self.feature_extractor.extract_vit_tokens(x)
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.conv(x)
         x = self.norm(x)
@@ -256,6 +261,11 @@ class TerraSpectra3DCNN(nn.Module):
         """Validate 5D input [B, 1, D, H, W] and return raw classification logits [B, K]."""
         features = self.extract_features(x)
         return self.classifier(features)
+
+    def extract_vit_tokens(self, x: torch.Tensor) -> torch.Tensor:
+        """Validate 5D input and return [B, N_tokens, feature_dim] tokens for Week 3 ViT."""
+        validate_model_input(x, spec=self.contract_spec)
+        return self.feature_extractor.extract_vit_tokens(x)
 
     @torch.no_grad()
     def predict_probabilities(self, x: torch.Tensor) -> torch.Tensor:

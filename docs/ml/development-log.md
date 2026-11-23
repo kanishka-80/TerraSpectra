@@ -361,3 +361,20 @@
 - **Live Resource, Checkpoint & ViT Token Probe:**
   - `AUDIT OK | Device: cuda | Params: 24682 | Size KB: 96.41 | ViT Tokens: (4, 25, 128) | Ckpt Restored: True | Peak VRAM MB: 30.87`.
 - **Week 3 Readiness:** Confirmed `SpatialSpectral3DExtractor.extract_vit_tokens()` emits `[B, 25, 128]` normalized tokens ready for Week 3 Transformer integration; real dataset training remains gated on confirmed scene and label files from Data Engineering.
+
+## Day 14 (Week 2, Day 7) — ML Week 2 Finalization, Experiment Consolidation & Week 3 Handoff
+**Date:** Monday, 23 November 2026  
+**Engineer:** Harsh (ML Engineering Lead)  
+**Branch:** `Harsh`
+
+### 1. Objectives & Consolidation Work
+- Consolidated all Week 2 ML deliverables across `models/`, `training/`, `evaluation/`, `configs/`, `tests/`, and `docs/ml/` into `docs/ml/week2-final-report.md`.
+- Applied two safe, non-disruptive improvements:
+  1. Added top-level `TerraSpectra3DCNN.extract_vit_tokens()` delegator in `ml/src/terraspectra_ml/models/cnn3d.py` with input validation and unit test coverage in `ml/tests/test_cnn3d.py`.
+  2. Updated `.gitignore` to explicitly exclude `ml/artifacts/`, `*.pt`, `*.pth`, and `data/raw/`.
+- Prepared the Week 3 Vision Transformer (ViT) integration roadmap without starting Week 3 implementation.
+
+### 2. Final Week 2 Test Validation & Baseline Level
+- **Test Command:** `python -m unittest discover -s ml/tests -v`
+  - **Actual Result:** `Ran 41 tests in 5.108s` — `OK` (41 passed, 0 failed, 0 skipped).
+- **Final Week 2 Baseline Level:** **Level 2+ Verified** (Architecture, Training Engine, Checkpointing, Evaluation Framework, and Software Data-Loader Interface verified; Level 4 real trained baseline remains gated on confirmed hyperspectral data and ground-truth labels).
