@@ -1,5 +1,4 @@
-
-from uuid import uuid4
+﻿from uuid import uuid4
 
 from backend.app.schemas.analysis import AnalysisRequestSchema
 
@@ -8,7 +7,7 @@ def generate_mock_prediction(request: AnalysisRequestSchema) -> dict:
     """
     Generate a mock prediction response for API integration testing.
 
-    This function does not execute any ML model.
+    This adapter does not execute any ML model.
     """
 
     return {

@@ -1,17 +1,22 @@
+﻿from datetime import datetime, timezone
 
-from datetime import datetime, timezone
-
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from backend.app.schemas.analysis import (
     AnalysisRequestSchema,
     StandardResponseEnvelope,
 )
-from backend.app.services.mock_predictor import (
-    generate_mock_prediction,
+from backend.app.services.inference_service import (
+    InferenceService,
+    inference_service,
 )
 
 router = APIRouter()
+
+
+def get_inference_service() -> InferenceService:
+    """Provide the configured inference service."""
+    return inference_service
 
 
 @router.post(
@@ -26,12 +31,13 @@ router = APIRouter()
 )
 def create_prediction(
     request: AnalysisRequestSchema,
+    service: InferenceService = Depends(get_inference_service),
 ):
-    mock_result = generate_mock_prediction(request)
+    prediction_result = service.predict(request)
 
     return StandardResponseEnvelope(
         status="success",
         timestamp=datetime.now(timezone.utc),
-        job_id=mock_result["job_id"],
-        data=mock_result,
+        job_id=prediction_result["job_id"],
+        data=prediction_result,
     )
