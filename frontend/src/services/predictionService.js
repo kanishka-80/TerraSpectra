@@ -18,7 +18,9 @@ import { apiGet, apiPost, USE_MOCK } from "./apiClient.js";
 export const ENDPOINTS = {
   HEALTH: "/health",
   SYSTEM_STATUS: "/api/v1/system/status",
+  STATUS: "/api/v1/status",
   ANALYZE: "/api/v1/analyze",
+  PREDICTIONS: "/api/v1/predictions",
   PREDICT_SCAN: "/predict",
 };
 
@@ -58,6 +60,7 @@ export function generateMockAnalysisResponse(requestData = {}) {
     status: "success",
     timestamp: new Date().toISOString(),
     job_id: `job_mock_${Date.now()}`,
+    message: "SIMULATED RESULT — Demo mock adapter output. Not real crop disease predictions.",
     mockNotice: "SIMULATED RESULT — Demo mock adapter output. Not real crop disease predictions.",
     data: {
       metadata: {
@@ -92,6 +95,7 @@ export function generateMockAnalysisResponse(requestData = {}) {
 export const MOCK_PREDICTION_SCAN = {
   _isMock: true,
   status: "success",
+  message: "SIMULATED RESULT — Scanner mock adapter output.",
   mockNotice: "SIMULATED RESULT — Scanner mock adapter output.",
   data: {
     disease: "Early Blight (Sample Output)",
@@ -121,7 +125,14 @@ export async function checkSystemStatus() {
   if (USE_MOCK) {
     return MOCK_SYSTEM_STATUS_RESPONSE;
   }
-  return apiGet(ENDPOINTS.SYSTEM_STATUS);
+  try {
+    return await apiGet(ENDPOINTS.SYSTEM_STATUS);
+  } catch (err) {
+    if (err && err.status === 404) {
+      return apiGet(ENDPOINTS.STATUS);
+    }
+    throw err;
+  }
 }
 
 /**
@@ -140,7 +151,14 @@ export async function submitAnalysis(payload = {}) {
     await new Promise((resolve) => setTimeout(resolve, 350));
     return generateMockAnalysisResponse(payload);
   }
-  return apiPost(ENDPOINTS.ANALYZE, payload);
+  try {
+    return await apiPost(ENDPOINTS.ANALYZE, payload);
+  } catch (err) {
+    if (err && err.status === 404) {
+      return apiPost(ENDPOINTS.PREDICTIONS, payload);
+    }
+    throw err;
+  }
 }
 
 /**

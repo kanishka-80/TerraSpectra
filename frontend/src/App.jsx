@@ -915,7 +915,7 @@ function App() {
                 </strong>
                 <p>
                   {predictionResult._isMock
-                    ? predictionResult.message
+                    ? (predictionResult.message || predictionResult.mockNotice)
                     : "Analysis complete. Navigate to Disease Analysis for details."}
                 </p>
               </div>
@@ -1601,7 +1601,7 @@ function App() {
                     </strong>
                     <p>
                       {predictionResult._isMock
-                        ? predictionResult.message
+                        ? (predictionResult.message || predictionResult.mockNotice)
                         : "Analysis complete."}
                     </p>
                   </div>
