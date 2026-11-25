@@ -1,21 +1,24 @@
 # TerraSpectra – Vision Transformer (ViT) Branch Configuration
 # Schema Version: 1.0.0
 # Author: Harsh (ML Engineering Lead)
-# Status: Day 15 Interface Specification (Full encoder implementation scheduled Day 16+)
+# Status: Day 16 Core ViT Building Blocks Implemented
 
 vit:
   name: "terraspectra_spatial_spectral_vit"
-  status: "contract_stub_day15"
+  status: "implemented_day16"
   token_source: "SpatialSpectral3DExtractor.extract_vit_tokens"
-  num_tokens: 25          # 5 x 5 pooled spatial grid from 3D-CNN feature map
+  spatial_grid_size: 5    # 5 x 5 = 25 spatial tokens
+  num_tokens: 25
+  input_token_dim: 128
   embed_dim: 128          # Matches Conv3DBlock final channel dimension (128)
   num_heads: 4            # 32 dims per attention head
   num_layers: 2           # Lightweight depth tailored for 4GB VRAM and limited crop labels
   mlp_ratio: 2.0          # Feed-forward hidden dimension = 256
+  spectral_bins: 16       # Adaptive spectral bins when tokenizing raw 5D cubes directly
   dropout: 0.10
   attention_dropout: 0.10
   use_cls_token: true
-  positional_encoding: "learnable_2d_spatial"
+  positional_encoding: "learnable_1d_interpolated"
   pooling: "cls"          # Options: "cls" or "mean"
   norm_first: true        # Pre-LayerNorm Transformer stability
 

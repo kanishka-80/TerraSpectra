@@ -1,7 +1,4 @@
-"""TerraSpectra ML Models Package.
-
-Exports validated input contract helpers and the initial 3D-CNN architecture.
-"""
+"""Model definitions and input contracts for TerraSpectra ML."""
 
 from terraspectra_ml.models.cnn3d import (
     ClassificationHead,
@@ -16,15 +13,39 @@ from terraspectra_ml.models.input_contract import (
     resolve_target_device,
     validate_model_input,
 )
+from terraspectra_ml.models.transformer_blocks import (
+    TransformerEncoderBlock,
+    TransformerEncoderStack,
+)
+from terraspectra_ml.models.vit import (
+    HyperspectralTokenEmbedding,
+    LearnablePositionalEncoding,
+    TerraSpectraViT,
+    TerraSpectraViTStub,
+    ViTArchitectureSpec,
+    ViTClassificationHead,
+    ViTTokenContract,
+    validate_vit_token_tensor,
+)
 
 __all__ = [
     "ClassificationHead",
     "Conv3DBlock",
+    "HyperspectralTokenEmbedding",
     "InputContractError",
     "InputContractSpec",
+    "LearnablePositionalEncoding",
     "SpatialSpectral3DExtractor",
     "TerraSpectra3DCNN",
+    "TerraSpectraViT",
+    "TerraSpectraViTStub",
+    "TransformerEncoderBlock",
+    "TransformerEncoderStack",
+    "ViTArchitectureSpec",
+    "ViTClassificationHead",
+    "ViTTokenContract",
     "adapt_4d_patch_batch_to_5d",
     "resolve_target_device",
     "validate_model_input",
+    "validate_vit_token_tensor",
 ]
