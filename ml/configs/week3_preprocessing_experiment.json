@@ -1,0 +1,123 @@
+{
+  "data_source": "deterministic_synthetic_smoke_test",
+  "data_kind": "synthetic_software_smoke_test",
+  "fit_policy": "Both normalization and PCA are fitted on training data only. The fitted transformations are reused unchanged on validation and test data.",
+  "band_selection_changed": false,
+  "split_changed": false,
+  "results": {
+    "standard_scaler": {
+      "scaler": "standard_scaler",
+      "train_samples": 256,
+      "validation_samples": 64,
+      "test_samples": 64,
+      "input_features": 16,
+      "pca_components_retained": 15,
+      "pca_explained_variance_ratio": 0.9597903042293725,
+      "train_output_shape": [
+        256,
+        15
+      ],
+      "validation_output_shape": [
+        64,
+        15
+      ],
+      "test_output_shape": [
+        64,
+        15
+      ],
+      "training_scaler_center": [
+        9.90275746698282,
+        9.869706734751524,
+        9.670868446383556,
+        10.168629013225607,
+        10.172108883913523,
+        10.01750436667513,
+        9.703089871240227,
+        9.77805358690603,
+        9.96533945172527,
+        10.18719480172666,
+        10.10751624457515,
+        9.779535410263124,
+        9.81661244667501,
+        9.935928884477827,
+        9.992270283523444,
+        10.002617193556079
+      ],
+      "training_scaler_scale": [
+        2.7268165566041054,
+        2.831840805009009,
+        3.045974775833376,
+        3.1184696341013067,
+        3.007566056833638,
+        3.128952327249892,
+        3.003262838323484,
+        3.126224971992972,
+        3.0279686345022974,
+        3.0047526515359553,
+        3.0562883215042156,
+        2.8812625802306795,
+        2.932297402258729,
+        2.976167619220939,
+        2.9424857257240222,
+        2.968809478509935
+      ]
+    },
+    "robust_scaler": {
+      "scaler": "robust_scaler",
+      "train_samples": 256,
+      "validation_samples": 64,
+      "test_samples": 64,
+      "input_features": 16,
+      "pca_components_retained": 15,
+      "pca_explained_variance_ratio": 0.9600693561858346,
+      "train_output_shape": [
+        256,
+        15
+      ],
+      "validation_output_shape": [
+        64,
+        15
+      ],
+      "test_output_shape": [
+        64,
+        15
+      ],
+      "training_scaler_center": [
+        9.819450155299146,
+        10.020166170051986,
+        10.023353450039377,
+        10.387592705932772,
+        10.088437356516039,
+        10.128805809028236,
+        9.707319448735923,
+        9.794872062009492,
+        9.827548451986111,
+        10.376293711123482,
+        10.154209985181058,
+        9.81360645464003,
+        9.877483686608503,
+        9.770308515578982,
+        10.095743940047221,
+        9.822070209369896
+      ],
+      "training_scaler_scale": [
+        3.5529279114847228,
+        3.8286212896389475,
+        4.503740126116652,
+        4.526038486117498,
+        3.950272279964313,
+        3.86858632506139,
+        4.133140860735191,
+        4.458968308211429,
+        3.5456744105044713,
+        3.898053500169926,
+        4.083676797223722,
+        3.747120334131104,
+        3.674595867797553,
+        3.827194765982215,
+        4.104588720429039,
+        4.060122842921311
+      ]
+    }
+  }
+}
