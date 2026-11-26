@@ -159,17 +159,35 @@ class PatchDataset:
 
         self.metadata = metadata
 
-        if (
-            self.labels is not None
-            and len(self.labels) != len(self.patches)
-        ):
-            raise ValueError("Patch and label counts differ")
+        if self.labels is not None:
+            if (
+                self.labels.ndim != 1
+                or len(self.labels) != len(self.patches)
+            ):
+                raise ValueError(
+                    "Labels must be 1D and match patch count"
+                )
+
+            if not np.issubdtype(self.labels.dtype, np.number):
+                raise ValueError("Labels must be numeric class IDs")
+
+            if (
+                not np.isfinite(self.labels).all()
+                or not np.equal(
+                    self.labels, np.floor(self.labels)
+                ).all()
+            ):
+                raise ValueError(
+                    "Labels must contain finite integer class IDs"
+                )
 
         if (
             self.metadata is not None
             and len(self.metadata) != len(self.patches)
         ):
-            raise ValueError("Patch and metadata counts differ")
+            raise ValueError(
+                "Patch and metadata counts differ"
+            )
 
     def __len__(self):
         return len(self.patches)
@@ -182,6 +200,8 @@ class PatchDataset:
 
     def get_metadata(self, index):
         if self.metadata is None:
-            raise ValueError("No patch metadata is available")
+            raise ValueError(
+                "No patch metadata is available"
+            )
 
         return self.metadata[index]
