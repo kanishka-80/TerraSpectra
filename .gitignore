@@ -12,3 +12,4 @@ ml/artifacts/
 *.pt
 *.pth
 data/raw/
+outputs/

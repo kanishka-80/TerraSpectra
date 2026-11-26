@@ -37,12 +37,21 @@ from terraspectra_ml.training import (
 )
 
 
-def _load_module(rel_path: str, module_name: str, git_ref: str = "origin/khushi"):
+def _load_module(
+    rel_path: str,
+    module_name: str,
+    git_ref: str = "origin/khushi",
+    package_name: str | None = None,
+):
     """Load a module from local disk if present, otherwise from the specified Git ref."""
+    full_name = f"{package_name}.{module_name}" if package_name else module_name
     local_file = REPO_DIR / rel_path
     if local_file.exists():
-        spec = importlib.util.spec_from_file_location(module_name, local_file)
+        spec = importlib.util.spec_from_file_location(full_name, local_file)
         mod = importlib.util.module_from_spec(spec)
+        if package_name:
+            mod.__package__ = package_name
+            sys.modules[full_name] = mod
         assert spec and spec.loader
         spec.loader.exec_module(mod)
         return mod
@@ -55,8 +64,11 @@ def _load_module(rel_path: str, module_name: str, git_ref: str = "origin/khushi"
     with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as tmp:
         tmp.write(code)
         tmp_path = tmp.name
-    spec = importlib.util.spec_from_file_location(module_name, tmp_path)
+    spec = importlib.util.spec_from_file_location(full_name, tmp_path)
     mod = importlib.util.module_from_spec(spec)
+    if package_name:
+        mod.__package__ = package_name
+        sys.modules[full_name] = mod
     assert spec and spec.loader
     spec.loader.exec_module(mod)
     return mod
@@ -67,14 +79,18 @@ class TestDataModelIntegration(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        from types import ModuleType
+        pkg = ModuleType("khushi_data")
+        pkg.__path__ = []
+        sys.modules["khushi_data"] = pkg
         cls.preproc_mod = _load_module(
-            "ml/src/terraspectra_ml/data/preprocessing.py", "khushi_preprocessing"
+            "ml/src/terraspectra_ml/data/preprocessing.py", "preprocessing", package_name="khushi_data"
         )
         cls.patch_mod = _load_module(
-            "ml/src/terraspectra_ml/data/patch_dataset.py", "khushi_patch_dataset"
+            "ml/src/terraspectra_ml/data/patch_dataset.py", "patch_dataset", package_name="khushi_data"
         )
         cls.loaders_mod = _load_module(
-            "ml/src/terraspectra_ml/data/loaders.py", "khushi_loaders"
+            "ml/src/terraspectra_ml/data/loaders.py", "loaders", package_name="khushi_data"
         )
         cls.split_mod = _load_module(
             "ml/src/terraspectra_ml/evaluation/spatial_split.py", "khushi_spatial_split"

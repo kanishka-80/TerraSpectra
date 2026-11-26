@@ -378,3 +378,11 @@
 - **Test Command:** `python -m unittest discover -s ml/tests -v`
   - **Actual Result:** `Ran 41 tests in 5.108s` — `OK` (41 passed, 0 failed, 0 skipped).
 - **Final Week 2 Baseline Level:** **Level 2+ Verified** (Architecture, Training Engine, Checkpointing, Evaluation Framework, and Software Data-Loader Interface verified; Level 4 real trained baseline remains gated on confirmed hyperspectral data and ground-truth labels).
+
+---
+
+## Day 17 — Standalone ViT Training, Validation & Checkpoint Workflow (2026-11-27)
+- **Branch & Environment:** Verified active branch `Harsh` (synced with `origin/Harsh` @ `0e2892b`), Python `3.11.9`, CUDA-enabled PyTorch on `NVIDIA GeForce RTX 3050 Laptop GPU (4 GB VRAM)`.
+- **Pipeline Audit & Integration:** Reused generic `train_one_epoch()`, `validate_one_epoch()`, `save_checkpoint()`, and `load_checkpoint()`; extended `ml/src/terraspectra_ml/training/train.py` (`main(..., model_type="vit")`) and `ml/configs/vit.yaml` (`training_overrides`) without duplicating DataLoaders or modifying the 3D-CNN workflow. Excluded `outputs/` in `.gitignore`.
+- **Dataset Readiness Decision:** Real hyperspectral dataset path, usable band indices, spatial patch size (`16x16` vs. `13x13` vs. `9x9`), and ground-truth labels (`confirmed: false`) remain `UNCONFIRMED`; executed a 3-epoch synthetic software smoke-training job only (`23.72 MB` peak CUDA VRAM, `3.815 s` runtime, `best_val_loss = 0.572629`, checkpoint save/load verified at epoch `3`).
+- **Verification & Reporting:** Added `ml/tests/test_vit_training.py` and updated `ml/tests/test_data_model_integration.py` for package-relative imports on `origin/khushi` (`baea3c7`). Executed `python -m unittest discover -s ml/tests -v` -> **`Ran 51 tests in 5.811s` — `OK`**. Created `docs/ml/week3_vit_training_report.md`.

@@ -1,11 +1,11 @@
 # TerraSpectra – Vision Transformer (ViT) Branch Configuration
-# Schema Version: 1.0.0
+# Schema Version: 1.1.0
 # Author: Harsh (ML Engineering Lead)
-# Status: Day 16 Core ViT Building Blocks Implemented
+# Status: Day 17 Standalone ViT Training & Checkpoint Workflow Connected
 
 vit:
   name: "terraspectra_spatial_spectral_vit"
-  status: "implemented_day16"
+  status: "training_workflow_day17"
   token_source: "SpatialSpectral3DExtractor.extract_vit_tokens"
   spatial_grid_size: 5    # 5 x 5 = 25 spatial tokens
   num_tokens: 25
@@ -21,6 +21,16 @@ vit:
   positional_encoding: "learnable_1d_interpolated"
   pooling: "cls"          # Options: "cls" or "mean"
   norm_first: true        # Pre-LayerNorm Transformer stability
+
+# Overrides applied on top of ml/configs/training.yaml when model_type == "vit"
+training_overrides:
+  training:
+    batch_size: 8         # Calibrated for RTX 3050 4GB VRAM smoke/controlled runs
+  checkpointing:
+    checkpoint_dir: "outputs/experiments/vit/checkpoints"
+  logging:
+    run_id: "vit_standalone"
+    output_dir: "outputs/experiments/vit/logs"
 
 hardware_budget:
   target_gpu: "NVIDIA GeForce RTX 3050 Laptop GPU (4GB VRAM)"

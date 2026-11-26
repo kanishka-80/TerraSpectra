@@ -13,6 +13,7 @@ from torch.optim import Adam, AdamW, Optimizer
 import yaml
 
 from terraspectra_ml.models.cnn3d import TerraSpectra3DCNN
+from terraspectra_ml.models.vit import TerraSpectraViT
 from terraspectra_ml.models.input_contract import resolve_target_device
 from terraspectra_ml.training.engine import train_one_epoch, validate_one_epoch
 from terraspectra_ml.training.losses import build_loss_function
@@ -211,14 +212,27 @@ def run_training(
     return summary
 
 
+def _deep_merge_dicts(base: Dict[str, Any], overrides: Dict[str, Any]) -> Dict[str, Any]:
+    merged = dict(base)
+    for k, v in overrides.items():
+        if isinstance(v, dict) and isinstance(merged.get(k), dict):
+            merged[k] = _deep_merge_dicts(merged[k], v)
+        else:
+            merged[k] = v
+    return merged
+
+
 def main(
     training_config_path: str | Path = "ml/configs/training.yaml",
     model_config_path: str | Path = "ml/configs/model_config.yaml",
     classes_config_path: str | Path = "ml/configs/classes.yaml",
     train_loader: Optional[Iterable[Any]] = None,
     val_loader: Optional[Iterable[Any]] = None,
+    model_type: str = "3dcnn",
+    vit_config_path: str | Path = "ml/configs/vit.yaml",
+    resume_from: Optional[str | Path] = None,
 ) -> Dict[str, Any]:
-    """CLI/programmatic entry point for TerraSpectra 3D-CNN training."""
+    """CLI/programmatic entry point for TerraSpectra 3D-CNN and standalone ViT training."""
     with open(training_config_path, "r", encoding="utf-8") as f:
         training_cfg = yaml.safe_load(f)
 
@@ -228,15 +242,30 @@ def main(
             "hyperspectral dataset split (awaiting Khushi's confirmed scene and label mask)."
         )
 
-    model = TerraSpectra3DCNN.from_configs(
-        model_config_path=model_config_path,
-        classes_config_path=classes_config_path,
-    )
+    normalized_model = str(model_type).strip().lower()
+    if normalized_model == "3dcnn":
+        model: nn.Module = TerraSpectra3DCNN.from_configs(
+            model_config_path=model_config_path,
+            classes_config_path=classes_config_path,
+        )
+    elif normalized_model == "vit":
+        with open(vit_config_path, "r", encoding="utf-8") as vf:
+            vit_raw = yaml.safe_load(vf) or {}
+        if "training_overrides" in vit_raw:
+            training_cfg = _deep_merge_dicts(training_cfg, vit_raw["training_overrides"])
+        model = TerraSpectraViT.from_configs(
+            vit_config_path=vit_config_path,
+            classes_config_path=classes_config_path,
+        )
+    else:
+        raise ValueError(f"Unsupported model_type '{model_type}'. Expected '3dcnn' or 'vit'.")
+
     return run_training(
         training_cfg=training_cfg,
         model=model,
         train_loader=train_loader,
         val_loader=val_loader,
+        resume_from=resume_from,
     )
 
 
