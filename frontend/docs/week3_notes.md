@@ -58,3 +58,42 @@
   - Enhanced `normalizePredictionFeature()` with resilient handling for unknown classes and incomplete optional metadata without crashing.
 - **`frontend/src/types/__tests__/predictionContract.test.js`:** Added 19 new unit tests verifying the Week 3 contracts. Total test suite expanded to **48 passing tests** (0 failures).
 - **Git Commit:** Committed Day 1 changes with message: `docs(frontend): confirm Week 3 model output and GIS contract`.
+
+---
+
+## Day 2 — Thursday, 26 November 2026
+
+### Focus: Implement Model-Output Adapter and Resilient Data Mapping
+
+#### 1. Tasks Executed
+- **Dedicated Model Prediction Adapter (`frontend/src/adapters/predictionAdapter.js`):**
+  - Decoupled raw backend API responses from Deck.gl map-layer rendering and DetailsPanel presentation.
+  - Implemented `adaptPredictionResponse()`: transforms raw HTTP / async job responses into a guaranteed `PredictionViewModel`.
+  - Implemented `adaptFeature()`: standardizes raw features into `PredictionFeatureViewModel` with verified score semantics, formatted score labels, and stable ID resolution.
+  - Implemented `createEmptyViewModel()`: standardized empty and fallback view model generator.
+  - Integrated support for Week 3 real-model envelopes (`data.metadata`, `data.metrics.mean_score`, `data.features`), Week 2 legacy envelopes (`data.metrics.mean_confidence`), and async job envelopes (`queued`, `running`, `completed`, `failed`).
+
+- **Resilient Data Mapping & Guardrails:**
+  - **Optional Metadata:** Missing fields (`acquisition_date`, `sensor`, `checkpoint`, `spatial_resolution_m`) are preserved as `null` or explicit fallback indicators (`"Pending confirmation"`), avoiding invented defaults.
+  - **Unknown Class Labels:** Unexpected class names are mapped to a neutral `Unknown Category` badge (`isUnknown: true`, `isProvisional: true`) without throwing unhandled exceptions.
+  - **Missing Geometry:** Features lacking valid polygon/point coordinates are preserved with `hasGeometry: false` and `geometry: null`, enabling details inspection while shielding Deck.gl layers from crashing.
+  - **Empty / Malformed Predictions:** Null, empty, or malformed responses safely resolve to `status: "empty"` with clear descriptive notices.
+  - **Mock / Sample Provenance:** Explicitly tracks `isMock` from payload or feature metadata to drive UI demo indicators.
+
+- **Hook & Type System Integration:**
+  - Updated `frontend/src/hooks/usePrediction.js`: Wired `adaptPredictionResponse` into `runAnalysis`, exposing a reactive `viewModel` alongside raw `result`.
+  - Updated `frontend/src/types/prediction.js`: Re-exported `adaptPredictionResponse`, `adaptFeature`, and `createEmptyViewModel`.
+
+- **Fixture-Based Test Suite (`frontend/src/adapters/__tests__/predictionAdapter.test.js`):**
+  - Created 12 new unit test assertions with approved sample response fixtures (Week 3 real model, Week 2 legacy, async running/completed/failed, empty predictions, unknown classes, missing geometries, and sparse metadata).
+  - Explicitly labeled all fixtures as synthetic sample data to prevent confusing test fixtures with model evaluation evidence.
+  - Total test suite expanded to **60 passing tests** across 20 suites with zero failures.
+
+#### 2. Quality Verification
+- **Test Suite:** 60 tests passing (`npm test`).
+- **Linter:** 0 warnings, 0 errors across 24 files (`npx oxlint`).
+- **Production Build:** Clean bundle generated in 1.13s (`npm run build`).
+
+#### 3. Daily Commit
+- `feat(frontend): add model prediction response adapter`
+

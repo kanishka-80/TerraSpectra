@@ -260,6 +260,12 @@ export function normalizePredictionFeature(rawFeature) {
   };
 }
 
+export {
+  adaptPredictionResponse,
+  adaptFeature,
+  createEmptyViewModel,
+} from "../adapters/predictionAdapter.js";
+
 export default {
   CONFIRMED_CLASSES,
   CLASS_METADATA,

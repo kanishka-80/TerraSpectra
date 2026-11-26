@@ -20,6 +20,7 @@ import {
   checkSystemStatus,
 } from "../services/predictionService.js";
 import { USE_MOCK } from "../services/apiClient.js";
+import { adaptPredictionResponse } from "../adapters/predictionAdapter.js";
 
 /**
  * @typedef {"idle"|"loading"|"success"|"empty"|"error"} RequestStatus
@@ -28,6 +29,7 @@ import { USE_MOCK } from "../services/apiClient.js";
 export function usePrediction() {
   const [status, setStatus] = useState("idle");
   const [result, setResult] = useState(null);
+  const [viewModel, setViewModel] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
   const [errorCode, setErrorCode] = useState(null);
 
@@ -42,19 +44,29 @@ export function usePrediction() {
 
       setStatus("loading");
       setResult(null);
+      setViewModel(null);
       setErrorMessage(null);
       setErrorCode(null);
 
       try {
         const data = await submitAnalysis(payload);
+        const vm = adaptPredictionResponse(data);
 
-        if (!data || (data.status === "success" && !data.data)) {
+        setResult(data);
+        setViewModel(vm);
+
+        if (!data || vm.status === "empty") {
           setStatus("empty");
-          setResult(data);
           return;
         }
 
-        setResult(data);
+        if (vm.status === "error") {
+          setStatus("error");
+          setErrorMessage(vm.message || "Analysis error occurred.");
+          setErrorCode(vm.errorCode || "ANALYSIS_ERROR");
+          return;
+        }
+
         setStatus("success");
       } catch (err) {
         setErrorMessage(err?.message || "Failed to complete prediction analysis.");
@@ -122,6 +134,7 @@ export function usePrediction() {
   const reset = useCallback(() => {
     setStatus("idle");
     setResult(null);
+    setViewModel(null);
     setErrorMessage(null);
     setErrorCode(null);
   }, []);
@@ -129,6 +142,7 @@ export function usePrediction() {
   return {
     status,
     result,
+    viewModel,
     errorMessage,
     errorCode,
     isMockMode: USE_MOCK,
