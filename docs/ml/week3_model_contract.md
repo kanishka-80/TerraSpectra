@@ -56,3 +56,10 @@ Rather than feeding raw `D`-band hyperspectral cubes directly into a pure ViT pa
 2. **Final Spectral Band Indices (`D`):** Which exact band indices/wavelengths remain after water-absorption/bad-band removal?
 3. **Final Patch Size (`9 x 9` vs. `16 x 16`):** Should we standardize on `patch.size: 16` (`data.yaml`) or `patch_size: 9` (`patch_dataset.py`), and what `buffer_pixels` margin (`>= 8` vs. `>= 4`) is locked for spatial splitting?
 4. **Verified Ground-Truth Class Labels (`classes.yaml`):** Are the target classes binary (`healthy` vs. `stressed`) or multi-class stress/disease categories, and when will `confirmed: true` be set?
+
+---
+
+## 6. Implemented Day 18 Hybrid Architecture & Fusion Contract (2026-11-28)
+- **Fusion Module (`ml/src/terraspectra_ml/models/fusion.py`):** `ConcatProjectionFusion(cnn_dim=128, vit_dim=128, fused_dim=128, dropout=0.1)` concatenates `[B, 128]` CNN features and `[B, 128]` ViT embeddings into `[B, 256]`, applying `LayerNorm(256) -> Linear(256, 128) -> GELU -> Dropout`.
+- **Hybrid Model (`ml/src/terraspectra_ml/models/hybrid.py`):** `TerraSpectraHybridCNNViT` runs `cnn.feature_extractor.forward_conv_volume(x)` once per `[B, 1, D, H, W]` batch to emit `cnn_features` (`[B, 128]`) and `vit_tokens` (`[B, 25, 128]`), encodes `vit_embedding` (`[B, 128]`) via `TerraSpectraViT.extract_embedding()`, fuses to `[B, 128]`, and outputs raw logits `[B, num_classes]` via `ClassificationHead`.
+- **Measured Hybrid Footprint (`cuda` RTX 3050, `[4, 1, 64, 9, 9]`):** `329,710` trainable parameters (`1,287.93 KB` in `float32`), `24.27 MB` peak allocated VRAM (`48.00 MB` reserved), and full gradient propagation verified across both branches (`56/56` tests passing).

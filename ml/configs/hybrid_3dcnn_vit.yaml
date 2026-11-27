@@ -74,6 +74,13 @@ vit:
 # ==============================================================================
 # E. CLASSIFICATION HEAD CONFIGURATION (Aligned with Day 3 Spec)
 # ==============================================================================
+fusion:
+  type: "concat_projection"
+  cnn_dim: 128
+  vit_dim: 128
+  fused_dim: 128
+  dropout: 0.1
+
 classification:
   num_classes: null                   # Bound dynamically from ml/configs/classes.yaml
   head_type: "linear"

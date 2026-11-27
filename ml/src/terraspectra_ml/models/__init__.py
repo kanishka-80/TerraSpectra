@@ -6,6 +6,8 @@ from terraspectra_ml.models.cnn3d import (
     SpatialSpectral3DExtractor,
     TerraSpectra3DCNN,
 )
+from terraspectra_ml.models.fusion import ConcatProjectionFusion
+from terraspectra_ml.models.hybrid import TerraSpectraHybridCNNViT
 from terraspectra_ml.models.input_contract import (
     InputContractError,
     InputContractSpec,
@@ -30,6 +32,7 @@ from terraspectra_ml.models.vit import (
 
 __all__ = [
     "ClassificationHead",
+    "ConcatProjectionFusion",
     "Conv3DBlock",
     "HyperspectralTokenEmbedding",
     "InputContractError",
@@ -37,6 +40,7 @@ __all__ = [
     "LearnablePositionalEncoding",
     "SpatialSpectral3DExtractor",
     "TerraSpectra3DCNN",
+    "TerraSpectraHybridCNNViT",
     "TerraSpectraViT",
     "TerraSpectraViTStub",
     "TransformerEncoderBlock",
