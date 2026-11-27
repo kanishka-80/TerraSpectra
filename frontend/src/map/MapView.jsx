@@ -1,19 +1,20 @@
 /**
- * TerraSpectra — Interactive Prediction Map View (Days 3, 4, 5 Deliverable)
+ * TerraSpectra — Interactive Prediction Map View (Week 3 Refined)
  *
  * Full-featured geospatial visualization dashboard incorporating:
- *   • Multi-layer Deck.gl rendering (Polygons, Stress Highlights, Grid Boundaries)
+ *   • Multi-layer Deck.gl rendering (Polygons, MultiPolygons, Points, Boundaries, Alerts)
  *   • MapLibre GL Carto Positron basemap
+ *   • Real-time reactive PredictionFilters (Scene, Class, Date, Keyword Search, Alerts Only)
  *   • Interactive selection and hover tooltips synchronized with DetailsPanel
  *   • LayerControls for granular visibility toggling
  *   • MapLegend reflecting confirmed ML categories vs provisional demo data
- *   • Graceful handling of empty, loading, and error states
+ *   • Graceful handling of empty, filtered, loading, and error states
  */
 
 import { useState, useMemo, useCallback } from "react";
 import DeckGL from "@deck.gl/react";
 import Map, { NavigationControl } from "react-map-gl/maplibre";
-import { AlertCircle, RefreshCw, Layers } from "lucide-react";
+import { AlertCircle, RefreshCw, Layers, FilterX } from "lucide-react";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -25,9 +26,11 @@ import {
 } from "./layers/layerFactory.js";
 
 import { useSelectedFeature } from "../hooks/useSelectedFeature.js";
+import { usePredictionFilters } from "../hooks/usePredictionFilters.js";
 import MapLegend from "../components/MapLegend.jsx";
 import DetailsPanel from "../components/DetailsPanel.jsx";
 import LayerControls from "../components/LayerControls.jsx";
+import PredictionFilters from "../components/PredictionFilters.jsx";
 
 const INITIAL_VIEW_STATE = {
   longitude: 80.207,
@@ -44,14 +47,14 @@ export default function MapView({
   errorMessage = null,
   onRetry = null,
 }) {
-  // Layer visibility state (Day 5)
+  // Layer visibility state
   const [layerVisibility, setLayerVisibility] = useState({
     predictions: true,
     alerts: true,
     boundaries: true,
   });
 
-  // Feature selection & hover hook (Day 4)
+  // Feature selection & hover hook
   const {
     selectedFeature,
     selectedFeatureId,
@@ -67,6 +70,27 @@ export default function MapView({
     [features]
   );
 
+  // Spatial & attribute filters hook
+  const {
+    sceneFilter,
+    classFilter,
+    dateFilter,
+    searchQuery,
+    alertsOnly,
+    isFiltered,
+    availableScenes,
+    availableClasses,
+    availableDates,
+    filteredFeatures,
+    counts,
+    setSceneFilter,
+    setClassFilter,
+    setDateFilter,
+    setSearchQuery,
+    setAlertsOnly,
+    resetFilters,
+  } = usePredictionFilters(safeFeatures);
+
   // Toggle layer visibility
   const handleToggleLayer = useCallback((layerKey) => {
     setLayerVisibility((prev) => ({
@@ -75,27 +99,18 @@ export default function MapView({
     }));
   }, []);
 
-  // Compute scene quick summary
+  // Compute scene quick summary from currently visible / filtered features
   const sceneSummary = useMemo(() => {
-    let healthy = 0;
-    let stressed = 0;
-
-    for (const f of safeFeatures) {
-      const cls = (f.properties?.class || "").toLowerCase();
-      if (cls === "healthy") healthy += 1;
-      if (cls === "stressed") stressed += 1;
-    }
-
     return {
-      total: safeFeatures.length,
-      healthy,
-      stressed,
+      total: counts.visible,
+      healthy: counts.healthy,
+      stressed: counts.stressed,
     };
-  }, [safeFeatures]);
+  }, [counts]);
 
-  // Compute Deck.gl layers dynamically based on visibility and selection
+  // Compute Deck.gl layers dynamically based on visibility, selection, and filtered features
   const layers = useMemo(() => {
-    if (safeFeatures.length === 0) return [];
+    if (filteredFeatures.length === 0) return [];
 
     const activeLayers = [];
 
@@ -103,7 +118,7 @@ export default function MapView({
     if (layerVisibility.boundaries) {
       const boundaryLayer = buildTileBoundaryLayer(
         "tile-boundaries-layer",
-        safeFeatures
+        filteredFeatures
       );
       if (boundaryLayer) activeLayers.push(boundaryLayer);
     }
@@ -112,7 +127,7 @@ export default function MapView({
     if (layerVisibility.predictions) {
       const predLayer = buildPredictionLayer(
         "prediction-overlay-layer",
-        safeFeatures,
+        filteredFeatures,
         {
           selectedFeatureId,
           onClick: handleFeatureClick,
@@ -126,7 +141,7 @@ export default function MapView({
     if (layerVisibility.alerts) {
       const alertLayer = buildStressAlertLayer(
         "stress-alert-highlight-layer",
-        safeFeatures,
+        filteredFeatures,
         {
           onClick: handleFeatureClick,
         }
@@ -136,7 +151,7 @@ export default function MapView({
 
     return activeLayers;
   }, [
-    safeFeatures,
+    filteredFeatures,
     layerVisibility,
     selectedFeatureId,
     handleFeatureClick,
@@ -152,7 +167,11 @@ export default function MapView({
   const activeLayerCount = Object.values(layerVisibility).filter(Boolean).length;
 
   return (
-    <div className="terra-map-container" role="region" aria-label="Hyperspectral Prediction Map">
+    <div
+      className="terra-map-container"
+      role="region"
+      aria-label="Hyperspectral Prediction Map"
+    >
       {/* Top Demo Banner */}
       {isDemo && (
         <div className="terra-map-demo-banner" role="banner">
@@ -190,14 +209,14 @@ export default function MapView({
             <strong>{hoveredFeature.label}</strong>
             <div className="tooltip-sub">
               <span>{hoveredFeature.classDisplayName}</span>
-              {typeof hoveredFeature.confidence === "number" && (
-                <span> | Conf: {(hoveredFeature.confidence * 100).toFixed(0)}%</span>
+              {typeof hoveredFeature.score === "number" && (
+                <span> | Score: {(hoveredFeature.score * 100).toFixed(0)}%</span>
               )}
             </div>
           </div>
         )}
 
-        {/* Empty State Overlay if no features or all layers hidden */}
+        {/* Empty State Overlay if no raw features exist */}
         {safeFeatures.length === 0 && !isLoading && (
           <div className="map-overlay-message empty-overlay">
             <Layers size={36} />
@@ -214,7 +233,22 @@ export default function MapView({
           </div>
         )}
 
-        {allLayersHidden && safeFeatures.length > 0 && (
+        {/* Filtered Out Empty State: Raw features exist, but active filters matched 0 */}
+        {safeFeatures.length > 0 && filteredFeatures.length === 0 && !isLoading && (
+          <div className="map-overlay-message empty-overlay">
+            <FilterX size={36} />
+            <h4>No Features Match Active Filters</h4>
+            <p>
+              None of the {safeFeatures.length} available features meet the selected filter criteria.
+            </p>
+            <button type="button" className="retry-btn" onClick={resetFilters}>
+              <RefreshCw size={14} /> Reset Filters
+            </button>
+          </div>
+        )}
+
+        {/* All Layers Hidden Overlay */}
+        {allLayersHidden && filteredFeatures.length > 0 && (
           <div className="map-overlay-message hidden-layers-overlay">
             <Layers size={32} />
             <h4>All Map Layers Hidden</h4>
@@ -258,12 +292,31 @@ export default function MapView({
         )}
       </div>
 
-      {/* Sidebar with Layer Controls, Legend, and Feature Details Panel */}
+      {/* Sidebar with Prediction Filters, Layer Controls, Legend, and Feature Details Panel */}
       <div className="terra-map-sidebar">
+        <PredictionFilters
+          sceneFilter={sceneFilter}
+          classFilter={classFilter}
+          dateFilter={dateFilter}
+          searchQuery={searchQuery}
+          alertsOnly={alertsOnly}
+          isFiltered={isFiltered}
+          availableScenes={availableScenes}
+          availableClasses={availableClasses}
+          availableDates={availableDates}
+          counts={counts}
+          onSceneChange={setSceneFilter}
+          onClassChange={setClassFilter}
+          onDateChange={setDateFilter}
+          onSearchChange={setSearchQuery}
+          onAlertsOnlyToggle={setAlertsOnly}
+          onResetFilters={resetFilters}
+        />
+
         <LayerControls
           layerVisibility={layerVisibility}
           onToggleLayer={handleToggleLayer}
-          totalFeatures={safeFeatures.length}
+          totalFeatures={counts.visible}
         />
 
         <MapLegend

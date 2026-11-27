@@ -97,3 +97,49 @@
 #### 3. Daily Commit
 - `feat(frontend): add model prediction response adapter`
 
+---
+
+## Day 3 — Friday, 27 November 2026
+
+### Focus: Improve Map Layers and Spatial Filtering
+
+#### 1. Tasks Executed
+- **Refined Deck.gl Layer Implementation (`frontend/src/map/layers/layerFactory.js`):**
+  - Added native multi-geometry support for `Polygon`, `MultiPolygon`, `Point`, and `MultiPoint` geometries.
+  - Implemented `filterSpatialFeatures()` to safeguard Deck.gl layers against non-spatial or tabular prediction records (`geometry: null`).
+  - Enhanced `calculateFeatureBounds()` to traverse multi-ring and multi-polygon geometries, ensuring accurate map bounding box calculations.
+  - Implemented unified property accessors (`getFeatureClass`, `getFeatureId`, `isAlertFeature`) that seamlessly operate on both raw GeoJSON API features and normalized `PredictionFeatureViewModel` instances.
+  - Added a disjoint multi-plot sample feature to `SAMPLE_FEATURES` in `frontend/src/map/layers/predictionLayer.js`.
+
+- **Prediction Filtering Hook & Pure Reducers (`frontend/src/hooks/usePredictionFilters.js`):**
+  - Architected headless pure helpers (`extractFilterOptions`, `applyPredictionFilters`) alongside the reactive `usePredictionFilters` hook.
+  - Supports filtering only on fields the API actually provides:
+    - **Class Filter:** Filters by confirmed classes (`healthy`, `stressed`, `unclassified_nodata`).
+    - **Scene Filter:** Dynamically derived from unique `scene_id` values in the dataset.
+    - **Acquisition Date Filter:** Dynamically derived from UTC acquisition timestamps.
+    - **Keyword Search:** Case-insensitive search across `tile_id`, `label`, and `stableId`.
+    - **Alerts Only Toggle:** Instant isolation of physiological stress anomaly alerts.
+  - Synchronizes visible vs. total feature counts and provides a one-click `resetFilters()` action.
+
+- **PredictionFilters Component (`frontend/src/components/PredictionFilters.jsx`):**
+  - Built an accessible, responsive filter control card with search input, class/scene/date dropdowns, alert toggle button with count badge, count pill (`X of Y visible`), and reset action.
+  - Added comprehensive responsive styling in `frontend/src/App.css`.
+
+- **Map View Integration (`frontend/src/map/MapView.jsx`):**
+  - Wired `usePredictionFilters` directly into `MapView.jsx`, feeding `filteredFeatures` to Deck.gl overlay, alert, and boundary layers.
+  - Updated `LayerControls` and `DetailsPanel` scene summaries to reflect filtered counts in real time.
+  - Added a dedicated "No Features Match Active Filters" overlay with a one-click "Reset Filters" action when filters yield 0 results from a non-empty dataset.
+
+- **Test Suite (`frontend/src/map/__tests__/predictionFilters.test.js`):**
+  - Added 16 new automated test assertions covering MultiPolygon bounding calculations, non-spatial feature filtering, class/scene/date/search filtering, alerts-only filtering, empty matches, and combined multi-filter evaluations.
+  - Expanded test suite to **76 passing tests** across 22 suites with 0 failures.
+
+#### 2. Quality Verification
+- **Test Suite:** 76 tests passing (`npm test`).
+- **Linter:** 0 warnings, 0 errors across 27 files (`npx oxlint`).
+- **Production Build:** Clean bundle generated in 1.34s (`npm run build`).
+
+#### 3. Daily Commit
+- `feat(frontend): add prediction layer filters and map updates`
+
+

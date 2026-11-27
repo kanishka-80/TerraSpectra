@@ -213,6 +213,52 @@ export const SAMPLE_FEATURES = [
       coordinates: [80.210, 13.083],
     },
   },
+  // MultiPolygon Feature: Disjoint Field Plots
+  {
+    type: "Feature",
+    id: "tile_sec_005_multi",
+    properties: {
+      tile_id: "tile_sec_005_multi",
+      label: "Paddy Sector Delta (Disjoint Plots)",
+      class: "healthy",
+      confidence: 0.925,
+      uncertainty: 0.035,
+      _isMock: true,
+      metadata: {
+        scene_id: "AVIRIS_CHENNAI_RICE_02",
+        tile_id: "tile_sec_005_multi",
+        sensor: "AVIRIS-NG",
+        acquisition_date: "2026-10-16",
+        crs: "EPSG:4326",
+        dimensions: "MultiPolygon (2 plots)",
+        model_name: "3D-CNN Baseline",
+        model_version: "v0.1.0",
+      },
+    },
+    geometry: {
+      type: "MultiPolygon",
+      coordinates: [
+        [
+          [
+            [80.214, 13.080],
+            [80.218, 13.080],
+            [80.218, 13.084],
+            [80.214, 13.084],
+            [80.214, 13.080],
+          ],
+        ],
+        [
+          [
+            [80.214, 13.085],
+            [80.218, 13.085],
+            [80.218, 13.089],
+            [80.214, 13.089],
+            [80.214, 13.085],
+          ],
+        ],
+      ],
+    },
+  },
 ];
 
 // ─── REUSABLE BUILDERS ────────────────────────────────────────────────────────
