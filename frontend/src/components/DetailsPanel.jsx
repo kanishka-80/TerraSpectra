@@ -1,15 +1,16 @@
 /**
- * TerraSpectra — DetailsPanel Component (Day 4 Deliverable)
+ * TerraSpectra — DetailsPanel Component (Week 3 Refined)
  *
- * Populates agreed scene/tile metadata, predicted class, confidence, uncertainty,
- * and model provenance for the selected map feature.
+ * Week 3 Day 4 Deliverable
  *
- * Key Behaviors:
- *   • Identifies feature by stable tile_id / feature_id.
- *   • Handles missing metadata gracefully with explicit "Not provided" or
- *     "Pending scene intake" rather than misleading placeholder data.
- *   • Provides a high-visibility reset/clear selection control.
- *   • Clearly flags mock/sample data to avoid confusing demos with real predictions.
+ * Displays detailed prediction metadata, exact score semantics, and model
+ * provenance for the selected map feature.
+ *
+ * Guardrails enforced:
+ *   • Never automatically conflates numeric scores with disease probabilities or confidence.
+ *   • Displays explicit score types (Softmax Score, Calibrated Confidence, or Raw Logit).
+ *   • Distinguishes unavailable values from zero or negative results.
+ *   • Clearly tags data provenance: Real Model Output, Test Fixture, or Simulated Mock Data.
  */
 
 import {
@@ -22,10 +23,17 @@ import {
   Satellite,
   Compass,
   Box,
-  Cpu,
   Info,
 } from "lucide-react";
+
 import { CLASS_METADATA } from "../types/prediction.js";
+import ModelMetadata from "./ModelMetadata.jsx";
+import {
+  formatModelScore,
+  formatUncertainty,
+  getProvenanceInfo,
+  formatFieldValue,
+} from "../utils/formatPrediction.js";
 
 export function DetailsPanel({
   selectedFeature,
@@ -42,7 +50,7 @@ export function DetailsPanel({
         <h4>No Feature Selected</h4>
         <p className="empty-panel-text">
           Click any polygon tile or sensor point on the map to inspect its spectral
-          classification, confidence score, and spatial metadata.
+          classification, model score semantics, and provenance metadata.
         </p>
 
         {sceneSummary && (
@@ -77,25 +85,31 @@ export function DetailsPanel({
     classDisplayName,
     isAlert,
     isProvisional,
-    confidence,
+    isUnknown,
+    score,
+    scoreType,
+    scores,
     uncertainty,
-    metadata,
+    metadata = {},
     _isMock,
+    _isSampleFixture,
     geometry,
+    hasGeometry = Boolean(geometry),
   } = selectedFeature;
 
-  const classMeta = CLASS_METADATA[className] || CLASS_METADATA.demo;
+  const classMeta = CLASS_METADATA[className] || {
+    id: 999,
+    name: classDisplayName || "Unknown Category",
+    hex: "#8c96a0",
+    description: "Unrecognized class category returned by model output.",
+  };
 
-  // Format confidence & uncertainty cleanly
-  const formattedConfidence =
-    typeof confidence === "number"
-      ? `${(confidence * 100).toFixed(1)}%`
-      : "Not computed";
-
-  const formattedUncertainty =
-    typeof uncertainty === "number"
-      ? `± ${(uncertainty * 100).toFixed(1)}%`
-      : "Not estimated";
+  const scoreInfo = formatModelScore(score, scoreType);
+  const formattedUncertainty = formatUncertainty(uncertainty);
+  const provenance = getProvenanceInfo(
+    { metadata, _isMock, _isSampleFixture },
+    isDemo
+  );
 
   return (
     <div className="details-panel" aria-label="Feature Details">
@@ -122,13 +136,11 @@ export function DetailsPanel({
         )}
       </div>
 
-      {/* Mock Notice Banner if feature is sample data */}
-      {(_isMock || isDemo) && (
-        <div className="details-mock-banner" role="note">
-          <Info size={14} />
-          <span>Sample data fixture. Not a confirmed field prediction.</span>
-        </div>
-      )}
+      {/* Provenance Notice Banner */}
+      <div className={`details-mock-banner ${provenance.badgeClass}`} role="note">
+        <Info size={14} />
+        <span>{provenance.description}</span>
+      </div>
 
       {/* Primary Classification Card */}
       <div className="details-card classification-card">
@@ -161,76 +173,118 @@ export function DetailsPanel({
             {isProvisional && (
               <span className="badge badge-provisional">
                 <HelpCircle size={12} />
-                Provisional
+                {isUnknown ? "Unknown Category" : "Provisional"}
               </span>
             )}
           </div>
         </div>
 
+        {/* Metric Row with Explicit Score Semantics */}
         <div className="metric-row">
           <div className="metric-box">
-            <span className="metric-label">Model Confidence</span>
-            <span className="metric-value">{formattedConfidence}</span>
+            <div className="metric-header-row">
+              <span className="metric-label">{scoreInfo.label}</span>
+              <span className="metric-type-chip">{scoreInfo.type}</span>
+            </div>
+            <span className="metric-value">{scoreInfo.formatted}</span>
           </div>
 
           <div className="metric-box">
-            <span className="metric-label">Uncertainty</span>
+            <div className="metric-header-row">
+              <span className="metric-label">Uncertainty</span>
+            </div>
             <span className="metric-value">{formattedUncertainty}</span>
           </div>
         </div>
+
+        {/* Multi-Class Score Breakdown (if available) */}
+        {scores && typeof scores === "object" && Object.keys(scores).length > 0 && (
+          <div className="class-scores-breakdown">
+            <span className="breakdown-title">Class Distribution Probabilities</span>
+            <div className="scores-list">
+              {Object.entries(scores).map(([cls, val]) => {
+                const meta = CLASS_METADATA[cls.toLowerCase()];
+                const pct = typeof val === "number" ? (val * 100).toFixed(1) : 0;
+                return (
+                  <div key={cls} className="score-item">
+                    <span className="score-cls-name">{meta ? meta.name : cls}</span>
+                    <div className="score-bar-track">
+                      <div
+                        className="score-bar-fill"
+                        style={{
+                          width: `${pct}%`,
+                          backgroundColor: meta ? meta.hex : "#94a3b8",
+                        }}
+                      />
+                    </div>
+                    <span className="score-pct">{pct}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Geospatial & Scene Metadata */}
+      {/* Geospatial & Scene Metadata Card */}
       <div className="details-card">
         <h5>Geospatial & Scene Metadata</h5>
         <dl className="metadata-grid">
           <div className="meta-item">
-            <dt><Layers size={13} /> Scene ID</dt>
-            <dd>{metadata.sceneId || "Not provided"}</dd>
+            <dt>
+              <Layers size={13} /> Scene ID
+            </dt>
+            <dd>{formatFieldValue(metadata.sceneId, "Pending intake")}</dd>
           </div>
 
           <div className="meta-item">
-            <dt><Satellite size={13} /> Sensor</dt>
-            <dd>{metadata.sensor || "Pending intake"}</dd>
+            <dt>
+              <Satellite size={13} /> Sensor
+            </dt>
+            <dd>{formatFieldValue(metadata.sensor, "Pending confirmation")}</dd>
           </div>
 
           <div className="meta-item">
-            <dt><Calendar size={13} /> Acquisition</dt>
-            <dd>{metadata.acquisitionDate || "Not recorded"}</dd>
+            <dt>
+              <Calendar size={13} /> Acquisition
+            </dt>
+            <dd>{formatFieldValue(metadata.acquisitionDate, "Not recorded")}</dd>
           </div>
 
           <div className="meta-item">
-            <dt><Compass size={13} /> CRS</dt>
-            <dd>{metadata.crs || "EPSG:4326"}</dd>
+            <dt>
+              <Compass size={13} /> CRS
+            </dt>
+            <dd>{formatFieldValue(metadata.crs, "EPSG:4326")}</dd>
           </div>
 
           <div className="meta-item">
-            <dt><Box size={13} /> Patch Grid</dt>
-            <dd>{metadata.dimensions || "Pending scene intake"}</dd>
+            <dt>
+              <Box size={13} /> Patch Grid
+            </dt>
+            <dd>{formatFieldValue(metadata.dimensions, "32x32 px")}</dd>
           </div>
 
           <div className="meta-item">
-            <dt><Layers size={13} /> Geometry</dt>
-            <dd>{geometry?.type || "Unknown geometry"}</dd>
+            <dt>
+              <Layers size={13} /> Geometry
+            </dt>
+            <dd>
+              {hasGeometry
+                ? geometry?.type || "Vector Geometry"
+                : "Non-Spatial / Tabular"}
+            </dd>
           </div>
         </dl>
       </div>
 
-      {/* Model & Provenance */}
-      <div className="details-card">
-        <h5>Model Provenance</h5>
-        <dl className="metadata-grid">
-          <div className="meta-item">
-            <dt><Cpu size={13} /> Architecture</dt>
-            <dd>{metadata.modelName || "3D-CNN Baseline"}</dd>
-          </div>
-
-          <div className="meta-item">
-            <dt><Info size={13} /> Checkpoint</dt>
-            <dd>{metadata.modelVersion || "v0.1.0-provisional"}</dd>
-          </div>
-        </dl>
-      </div>
+      {/* Transparent Model Metadata & Provenance Component */}
+      <ModelMetadata
+        metadata={metadata}
+        isDemo={isDemo}
+        _isMock={_isMock}
+        _isSampleFixture={_isSampleFixture}
+      />
     </div>
   );
 }

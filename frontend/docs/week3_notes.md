@@ -142,4 +142,48 @@
 #### 3. Daily Commit
 - `feat(frontend): add prediction layer filters and map updates`
 
+---
+
+## Day 4 — Saturday, 28 November 2026
+
+### Focus: Upgrade Prediction Details and Model Transparency
+
+#### 1. Tasks Executed
+- **Prediction Formatting Utility (`frontend/src/utils/formatPrediction.js`):**
+  - Implemented `formatModelScore()` to enforce rigorous score semantics:
+    - Labels scores explicitly as `Softmax Score`, `Calibrated Confidence`, or `Raw Model Score`.
+    - Guardrail: strictly prevents automatically assuming an arbitrary score represents crop disease percentage or confidence.
+    - Distinguishes numeric zero (`0.0%`) from unavailable/uncomputed states (`Unavailable`).
+  - Implemented `formatUncertainty()`: formats numeric uncertainty metrics or outputs `"Not estimated"`.
+  - Implemented `formatResolution()`: formats ground sampling distance (GSD) in meters per pixel.
+  - Implemented `getProvenanceInfo()`: identifies and stamps data provenance as `Live Model Output`, `Sample Test Fixture`, or `Simulated Mock Data`.
+
+- **Model Provenance Component (`frontend/src/components/ModelMetadata.jsx`):**
+  - Created a dedicated transparency card displaying:
+    - Model Architecture (e.g., `3D-CNN Spatial-Spectral Baseline`).
+    - Checkpoint Identifier (e.g., `checkpoints/3dcnn_aviris_w3.pt`).
+    - Inference Execution Device (`CUDA`, `CPU`, or `Mock Engine`).
+    - Ground Sampling Distance & Coordinate Reference System (`EPSG:4326`).
+    - Prominent provenance pill tag (`badge-real`, `badge-fixture`, `badge-mock`).
+
+- **Upgraded Details Panel (`frontend/src/components/DetailsPanel.jsx`):**
+  - Integrated `formatModelScore()` to display score metrics alongside explicit type chips.
+  - Added a multi-class probability breakdown bar showing distributions across confirmed classes (`healthy`, `stressed`, `unclassified_nodata`).
+  - Embedded `ModelMetadata` component directly into the feature details view.
+  - Handled non-spatial / tabular features cleanly with a `"Non-Spatial / Tabular"` geometry badge.
+  - Added CSS styling in `frontend/src/App.css` for score breakdown bars, provenance badges, and device badges.
+
+- **Unit Test Suite (`frontend/src/utils/__tests__/formatPrediction.test.js`):**
+  - Created 14 unit test assertions covering score semantics, logit vs. probability formatting, uncertainty, resolution, provenance classification, and field value preservation.
+  - Expanded test suite to **90 passing tests** across 28 suites with zero failures.
+
+#### 2. Quality Verification
+- **Test Suite:** 90 tests passing (`npm test`).
+- **Linter:** 0 warnings, 0 errors across 30 files (`npx oxlint`).
+- **Production Build:** Clean bundle generated in 1.22s (`npm run build`).
+
+#### 3. Daily Commit
+- `feat(frontend): clarify prediction details and model metadata`
+
+
 
